@@ -321,6 +321,7 @@ html.client .price-in{pointer-events:none;border-color:transparent;background:tr
 .line.promoLine .n{color:#5fd393}.line.promoLine .s{color:#5fd393}
 html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!important}
 .dmbox{max-width:460px;width:100%}
+.chip.on{border-color:var(--gold)!important;background:rgba(245,196,81,.14)!important;color:var(--gold)!important}
 #dmCopy.done{border-color:#2fb36b;color:#5fd393}
 .dmSteps{margin:6px 0 10px 18px;padding:0;font-size:14px;line-height:1.5;color:#e8e6e3}
 #dmText{font-family:inherit;width:100%;height:150px;background:#0f0f12;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;color:#cfcfd6;resize:none}
@@ -524,9 +525,12 @@ function templateLayout(T, box){
   return {placed,fail:[],fits:true,template:T.name};
 }
 const PRESETS = [
-  {items:['key','plugs']},
-  {items:['plate','perfume','brush']},
-  ...[1,2].map(k=>TEMPLATES[k]).filter(Boolean).map(T=>({items:Object.keys(T.items)})),
+  {items:['key','plugs','brush']},                    // 580
+  {items:['cover','key','perfume']},                  // 1030
+  {items:['wallet','key','case']},                    // 1180
+  {items:['cover','key','aromavip','case']},          // 1630 (шаблон з фото BMW)
+  {items:['cover','key','aromavip','brush','plugs','case']}, // 2010 (шаблон з фото VW)
+  {items:['wallet','key','case','charger','proj']},   // 2480
 ];
 
 const LS = {
@@ -899,7 +903,7 @@ function toggleItem(id){
   }
   state.items=ids; state.box=f; render(); askPers(id);
 }
-function render(){ renderBoxes(); renderStage(); renderShop(); renderStats(); try{updPers();}catch(e){} }
+function render(){ renderBoxes(); renderStage(); renderShop(); renderStats(); try{updPers();}catch(e){} try{renderPresets();}catch(e){} }
 /* ===== Персоналізація: показуємо лише потрібне під обрані товари ===== */
 const LOGO_ITEMS=['cover','wallet','brush','aromavip','vip','key','plugs'];
 const needPerf=()=>has('perfume'), needLogo=()=>state.items.some(id=>LOGO_ITEMS.includes(id)), needPlate=()=>state.items.some(id=>PLATE_REG[id]);
@@ -961,9 +965,14 @@ $('#dmCopy').onclick=async()=>{ const ta=$('#dmText'); let ok=false; try{ await 
 $('#dmodal').onclick=e=>{ if(e.target.id==='dmodal') $('#dmodal').classList.remove('on'); };
 $('#dmOpen').addEventListener('click',()=>setTimeout(()=>$('#dmodal').classList.remove('on'),400));
 function renderPresets(){
-  const el=$('#presets'); el.innerHTML='<span class="hint" style="align-self:center">Готові набори:</span>';
-  PRESETS.forEach(p=>{const b=document.createElement('button');b.className='chip'; const ok=p.items.filter(id=>byId(id)); const sum=ok.reduce((s,id)=>s+(byId(id).price||0),0); b.textContent=`${ok.length} ${plural(ok.length)} · ${fmt(sum)} грн`;
-    b.onclick=()=>{state.items=[...p.items];applyAuto();render();};el.appendChild(b);});
+  const el=$('#presets'); if(!el) return; el.innerHTML='<span class="hint" style="align-self:center">Готові набори:</span>';
+  const cur=[...state.items].sort().join(',');
+  PRESETS.forEach(p=>{const b=document.createElement('button'); const ok=p.items.filter(id=>byId(id));
+    const sum=ok.reduce((s,id)=>s+(byId(id).price||0),0); const on=ok.slice().sort().join(',')===cur;
+    b.className='chip'+(on?' on':''); b.textContent=`${ok.length} ${plural(ok.length)} · ${fmt(sum)} грн`;
+    b.title=on?'Натисни ще раз, щоб очистити коробку':ok.map(id=>byId(id).name).join(' + ');
+    b.onclick=()=>{ if(on){ state.items=[]; } else { state.items=[...ok]; applyAuto(); } render(); };
+    el.appendChild(b);});
 }
 $('#disc').value=state.disc; $('#discType').value=state.discType;
 $('#disc').oninput=e=>{state.disc=Math.max(0,+e.target.value||0);renderStats();};
