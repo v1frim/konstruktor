@@ -490,11 +490,11 @@ DEFAULT_CATALOG.forEach(it=>{it.img0=it.img;});
 DEFAULT_CATALOG.forEach(it=>{const b=BX[it.id]; if(b){ it.boxImg=b.src; it.ax=b.axis; it.nw=b.nw; it.nh=b.nh; if(ENVELOPE.includes(it.id)) it.vw=Math.max(it.w,b.w); if(b.bl) it.bl=b.bl; if(b.bodyMin) it.bodyMin=b.bodyMin; it.box0=it.boxImg; }});
 const DEFAULT_BOXES = [
   {id:'none',   name:'Без коробки', price:0, max:0},
-  {id:'mala',   name:'Мала',        price:0, w:9,  d:9,  h:3, max:99},
-  {id:'mid',    name:'Середня',     price:0, w:12, d:12, h:4, max:99, img:IMG.b_mid},
-  {id:'square', name:'Квадратна',   price:0, w:15, d:15, h:3, max:99},
-  {id:'rect',   name:'Прямокутна',  price:0, w:22, d:17, h:3, max:99, img:IMG.b_rect},
-  {id:'big',    name:'Велика',      price:0, w:18, d:18, h:5, max:99, img:IMG.b_big},
+  {id:'mala',   name:'Мала',        price:55, w:9,  d:9,  h:3, max:99},
+  {id:'mid',    name:'Середня',     price:65, w:12, d:12, h:4, max:99, img:IMG.b_mid},
+  {id:'square', name:'Квадратна',   price:85, w:15, d:15, h:3, max:99},
+  {id:'rect',   name:'Прямокутна',  price:85, w:22, d:17, h:3, max:99, img:IMG.b_rect},
+  {id:'big',    name:'Велика',      price:85, w:18, d:18, h:5, max:99, img:IMG.b_big},
 ];
 const AUTO_ORDER = ['mala','mid','square','rect','big']; // від меншої до більшої (за об'ємом)
 /* Шаблони з реальних фото наборів: центр товару (частка ширини/глибини коробки), 'v' — вертикально, 'h' — горизонтально, '+' — лежить зверху */
@@ -519,10 +519,9 @@ function templateLayout(T, box){
   return {placed,fail:[],fits:true,template:T.name};
 }
 const PRESETS = [
-  {name:'Міні: номер + парфум + щіточка', items:['plate','perfume','brush']},
-  {name:'Брелок + заглушки', items:['key','plugs']},
-  {name:'2 брелоки + заглушки', items:['key','vip','plugs']},
-  ...TEMPLATES.map(T=>({name:T.name, items:Object.keys(T.items)})),
+  {items:['key','plugs']},
+  {items:['plate','perfume','brush']},
+  ...[1,2].map(k=>TEMPLATES[k]).filter(Boolean).map(T=>({items:Object.keys(T.items)})),
 ];
 
 const LS = {
@@ -545,14 +544,14 @@ function loadCatalog(){
     (saved.custom||[]).forEach(c=>{ if(!c.l){c.l=6;c.w=4;c.t=2;} catalog.push(c); });
   }
   boxes = DEFAULT_BOXES.map(x=>({...x}));
-  const bp = CLIENT ? {} : LS.get('boxprices2', {});
+  const bp = CLIENT ? {} : LS.get('boxprices3', {});
   boxes.forEach(b=>{ if(bp[b.id]!=null) b.price=bp[b.id]; });
 }
 function saveCatalog(){
   const prices = catalog.filter(c=>!c.custom).map(c=>({id:c.id,price:c.price}));
   const custom = catalog.filter(c=>c.custom);
   if(!LS.set('catalog',{prices,custom})) toast('Не вдалося зберегти в браузері — зміни діятимуть до перезавантаження');
-  const bp={}; boxes.forEach(b=>bp[b.id]=b.price); LS.set('boxprices2',bp);
+  const bp={}; boxes.forEach(b=>bp[b.id]=b.price); LS.set('boxprices3',bp);
   packCache.clear();
 }
 loadCatalog();
@@ -747,7 +746,7 @@ function renderBoxes(){
     d.innerHTML=`<span class="redbox empty" style="width:40px;height:40px"></span><div><b>Набір не поміщається в жодну коробку</b></div>`;
   } else {
     const nb=!!state.noBox;
-    const sub = nb ? 'товари без пакування' : [b.price?'+ '+fmt(b.price)+' грн':'', (!CLIENT&&findTemplate(state.items))?'розкладка як на вашому фото':''].filter(Boolean).join(' · ');
+    const sub = nb ? 'товари без пакування' : [state.items.length===1?(b.price?'+ '+fmt(b.price)+' грн':''):'у подарунок до набору', (!CLIENT&&findTemplate(state.items))?'розкладка як на вашому фото':''].filter(Boolean).join(' · ');
     d.innerHTML=`${nb?'<span class="redbox empty" style="width:40px;height:40px"></span>':boxSvg(b)}<div class="bsinfo"><b>${nb?'Без подарункової коробки':`Подарункова коробка ${b.w}×${b.d}×${b.h} см`}</b>${sub?`<div class="bp">${sub}</div>`:''}</div>
       <label class="tgl" title="Подарункова коробка"><input type="checkbox" ${nb?'':'checked'}><span></span>коробка</label>
       <label class="bprice">ціна коробки <input type="number" min="0" value="${b.price}"> грн</label>`;
@@ -833,7 +832,7 @@ let shownTotal=0, anim;
 function calc(){
   const box=curBox();
   const goods=state.items.reduce((s,id)=>s+(byId(id).price||0),0);
-  const boxPrice=(box.max&&state.items.length&&!state.noBox)?box.price:0;
+  const boxPrice=(box.max&&state.items.length===1&&!state.noBox)?box.price:0;
   const sub=goods+boxPrice;
   const dv=CLIENT?0:(+state.disc||0);
   const mdisc= state.discType==='pct'? sub*Math.min(dv,100)/100 : Math.min(dv,sub);
@@ -849,7 +848,7 @@ function renderStats(){
   $('#oldTotal').textContent=k.disc>0?fmt(k.sub)+' грн':'';
   $('#sCount').textContent=state.items.length;
   $('#sGoods').textContent=fmt(k.goods)+' грн';
-  $('#sBox').textContent=!state.items.length?'—':(state.noBox?'без коробки':(k.box.max?`${k.box.w}×${k.box.d}×${k.box.h} см`+(k.boxPrice||!CLIENT?` · ${fmt(k.boxPrice)} грн`:''):'—'));
+  $('#sBox').textContent=!state.items.length?'—':(state.noBox?'без коробки':(k.box.max?`${k.box.w}×${k.box.d}×${k.box.h} см · `+(k.boxPrice?`${fmt(k.boxPrice)} грн`:'у подарунок'):'—'));
   const bar=$('#fillBar');
   if(k.box.max && state.items.length){
     const res=pack(k.box,state.items);
@@ -959,7 +958,7 @@ $('#dmodal').onclick=e=>{ if(e.target.id==='dmodal') $('#dmodal').classList.remo
 $('#dmOpen').addEventListener('click',()=>setTimeout(()=>$('#dmodal').classList.remove('on'),400));
 function renderPresets(){
   const el=$('#presets'); el.innerHTML='<span class="hint" style="align-self:center">Готові набори:</span>';
-  PRESETS.forEach(p=>{const b=document.createElement('button');b.className='chip';b.textContent=p.name;
+  PRESETS.forEach(p=>{const b=document.createElement('button');b.className='chip'; const ok=p.items.filter(id=>byId(id)); const sum=ok.reduce((s,id)=>s+(byId(id).price||0),0); b.textContent=`${ok.length} ${plural(ok.length)} · ${fmt(sum)} грн`;
     b.onclick=()=>{state.items=[...p.items];applyAuto();render();};el.appendChild(b);});
 }
 $('#disc').value=state.disc; $('#discType').value=state.discType;
@@ -974,15 +973,16 @@ $('#resetCatalog').onclick=()=>{
 
 function summaryText(){
   const k=calc();
-  let t='Привіт! Хочу замовити набір 🎁\n\n';
+  const n=state.items.length;
+  let t= n>1 ? 'Вітаю! Хочу замовити набір 🎁\n\n' : 'Вітаю! Хочу замовити 🎁\n\n';
   state.items.forEach(id=>{const it=byId(id); t+=`• ${it.name}${it.price!=null?' — '+fmt(it.price)+' грн':''}\n`;});
-  if(k.box.max&&state.items.length) t+= state.noBox ? '• Без подарункової коробки\n' : `• Подарункова коробка ${k.box.w}×${k.box.d}×${k.box.h} см${k.boxPrice?' — '+fmt(k.boxPrice)+' грн':''}\n`;
+  if(k.box.max&&state.items.length) t+= state.noBox ? '• Без подарункової коробки\n' : `• Подарункова коробка ${k.box.w}×${k.box.d}×${k.box.h} см — ${k.boxPrice?fmt(k.boxPrice)+' грн':'у подарунок'}\n`;
   if(state.items.some(id=>EMB[id])) t+=`• Логотип: ${state.logo==null?'як на фото':LOGOS[state.logo][0]}\n`;
   if(state.plateText && state.items.some(id=>PLATE_REG[id])) t+=`• Номерний знак: ${state.plateText}\n`;
   t+='\n';
   if(k.pdisc>0) t+=`Промокод ${state.promo}: −${fmt(k.pdisc)} грн\n`;
   if(k.disc>0) t+=`Без знижки: ${fmt(k.sub)} грн\n`;
-  t+=`Ціна набору: ${fmt(k.total)} грн`;
+  t+= (n>1?'Ціна набору: ':'Разом: ')+`${fmt(k.total)} грн`;
   return t;
 }
 $('#copyBtn').onclick=async()=>{
@@ -999,7 +999,7 @@ function renderSaved(){
   list.forEach((s,i)=>{
     const valid=[...new Set(s.items)].filter(id=>byId(id));
     const box=boxById(s.box)||boxes[0];
-    const sum=valid.reduce((a,id)=>a+(byId(id).price||0),0)+(box.max?box.price:0);
+    const sum=valid.reduce((a,id)=>a+(byId(id).price||0),0)+(box.max&&valid.length===1?box.price:0);
     const d=document.createElement('div'); d.className='sv';
     d.innerHTML=`<b>${esc(s.name)}</b><span class="hint">${valid.length} шт</span><em>${fmt(sum)} грн</em><button title="Видалити">✕</button>`;
     d.onclick=e=>{ if(e.target.tagName==='BUTTON'){list.splice(i,1);LS.set('sets2',list);renderSaved();return;}
