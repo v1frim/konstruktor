@@ -251,7 +251,8 @@ textarea.copybox{width:100%;min-height:120px;margin-top:8px;background:#0f0f12;b
     background:linear-gradient(160deg,#2a2110,#17140d);border:1.5px solid var(--gold);border-radius:18px;padding:14px 14px;
     box-shadow:0 10px 30px rgba(0,0,0,.65),0 0 24px rgba(245,196,81,.18)}
   .mb-l{display:flex;flex-direction:column;min-width:0;gap:2px}
-  .mb-l b{font-size:16px;color:#fff}.mb-l span{font-size:13px;color:#d8c9a3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mb-l b{font-size:16px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mb-l b small{font-weight:700;color:var(--gold);font-size:13px}.mb-l span{font-size:13px;color:#d8c9a3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .mb-r{display:flex;align-items:center;gap:10px}
   .mb-total{font-family:Unbounded,sans-serif;font-weight:700;color:var(--gold);font-size:24px;white-space:nowrap;text-shadow:0 0 18px rgba(245,196,81,.35)}
   #mbGo{border:0;border-radius:12px;background:var(--red);color:#fff;font-weight:800;font-size:14px;padding:11px 14px;box-shadow:0 4px 14px rgba(229,50,45,.4)}
@@ -333,6 +334,7 @@ html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!
 .setTab small{font-weight:700;color:var(--muted)}
 .setTab.on{border-color:var(--gold);background:rgba(245,196,81,.12);color:var(--gold)}.setTab.on small{color:#e9cf8a}
 .setTab .x{border:0;background:transparent;color:#8d8a85;font-size:14px;line-height:1;padding:0 0 0 2px;cursor:pointer}.setTab .x:hover{color:#ff8a80}
+.setTab.clr{order:99;margin-left:auto;color:#ffb3ad;border-color:#5a2a2a;background:rgba(229,50,45,.08)}
 .setTab.addset{border-style:dashed;color:var(--gold);background:transparent}
 .setsum{margin:8px 0 2px;border-top:1px dashed var(--line);padding-top:8px}
 .setsum .sr{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;cursor:pointer;color:#cfcfd6}.setsum .sr.on{color:var(--gold);font-weight:800}
@@ -369,12 +371,12 @@ html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!
         <div class="perfRow" id="perfRow"></div>
         </div>
         <div class="psec" id="secLogo">
-        <label>Марка авто <small>— логотип на обкладинці, портмоне, щіточці, ароматизаторі VIP, брелоках, заглушках і чохлі</small> <b id="logoName" class="logoName">не обрано</b></label>
+        <label>Марка авто <b id="logoName" class="logoName">не обрано</b></label>
         <div class="logoRow" id="logoRow"></div>
         </div>
         <div class="psec" id="secPlate">
         <label for="plateIn">Свій номерний знак <small>— на обкладинці, портмоне й брелоку-номері (за бажанням)</small></label>
-        <div class="plateRow"><canvas class="uaTag" id="plateTag" width="60" height="96"></canvas><input id="plateIn" maxlength="12" placeholder="AA 1234 BB" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="plateClr" title="Повернути як на фото">✕</button></div>
+        <div class="plateRow"><canvas class="uaTag" id="plateTag" width="60" height="96"></canvas><input id="plateIn" maxlength="12" placeholder="AA 1234 AA" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="plateClr" title="Повернути як на фото">✕</button></div>
         <div class="fmtRow" id="fmtRow"></div>
         <div class="euRow" id="euRow" style="display:none">
           <select id="euSel"></select>
@@ -946,6 +948,7 @@ function renderSetTabs(){
     b.onclick=e=>{ if(e.target.classList.contains('x')) return; if(i!==state.cur) switchSet(i); };
     const x=b.querySelector('.x'); if(x) x.onclick=e=>{ e.stopPropagation(); removeSet(i); };
     el.appendChild(b); });
+  if(state.items.length){ const c=document.createElement('div'); c.className='setTab clr'; c.textContent='🗑 Очистити'; c.title='Прибрати всі товари з цього набору'; c.onclick=()=>{ state.items=[]; render(); toast('Набір очищено'); }; el.appendChild(c); }
   const a=document.createElement('div'); a.className='setTab addset'; a.textContent='+ ще набір'; a.title='Зібрати ще один набір (наприклад, подарунок іншій людині)'; a.onclick=addSet; el.appendChild(a);
 }
 function afterSwitch(){
@@ -1168,8 +1171,8 @@ $('#mbGo').onclick=()=>$('#statsPanel').scrollIntoView({behavior:'smooth',block:
 function plural(n){const a=n%10,b=n%100; return (a===1&&b!==11)?'товар':(a>=2&&a<=4&&(b<10||b>=20))?'товари':'товарів';}
 function renderMbar(){
   const k=calc(); const n=state.items.length;
-  $('#mbCount').textContent=(state.sets.length>1?`Набір ${state.cur+1} · `:'')+n+' '+plural(n);
-  $('#mbBox').textContent=n? (state.noBox?'без коробки':(k.box.max?`коробка ${k.box.w}×${k.box.d}×${k.box.h} см`:'не поміщається в коробку')) : 'додай товари';
+  $('#mbCount').innerHTML=(state.sets.length>1?`<small>Набір ${state.cur+1}</small> · `:'')+n+' '+plural(n);
+  $('#mbBox').textContent=n? (state.noBox?'без коробки':(k.box.max?`коробка ${k.box.w}×${k.box.d} см`:'не влазить у коробку')) : 'додай товари';
   $('#mbTotal').textContent=fmt(k.total)+' грн';
 }
 
@@ -1313,7 +1316,7 @@ async function plugBoxReal(src){
   return cv.toDataURL('image/png');
 }
 async function applyPlate(){
-  const job=++_plateJob, text=state.plateText||'', fmt=state.plateFmt||'ua', code=state.plateCode||'SK';
+  const job=++_plateJob, text=state.plateText||'AA 1234 AA', fmt=state.plateFmt||'ua', code=state.plateCode||'SK';
   drawTag();
   try{ await document.fonts.load('600 40px "Roboto Condensed"'); }catch(e){}
   const logo=(state.logo!=null && LOGOS[state.logo])? LOGOS[state.logo][1] : null;
@@ -1379,7 +1382,7 @@ function renderFmtsKeep(){ // оновити мініатюри, не збива
 }
 document.fonts && document.fonts.load('700 20px "Roboto Condensed"').then(()=>{renderFmts();drawTag();}).catch(()=>{});
 renderFmts(); drawTag(); renderLogos(); applyPerfume(); renderPerfumes();
-if(state.logo!=null || state.plateText || (state.plateFmt && state.plateFmt!=='ua')) applyPlate();
+applyPlate();
 
 /* ===== Картинка набору (для Direct) ===== */
 async function setImage(){
