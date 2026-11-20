@@ -321,6 +321,15 @@ html.client .price-in{pointer-events:none;border-color:transparent;background:tr
 .line.promoLine .n{color:#5fd393}.line.promoLine .s{color:#5fd393}
 html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!important}
 .dmbox{max-width:460px;width:100%}
+.setTabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.setTab{display:flex;align-items:center;gap:6px;white-space:nowrap;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:7px 10px;font-size:13px;font-weight:800;color:#d9d7d2;cursor:pointer;user-select:none}
+.setTab small{font-weight:700;color:var(--muted)}
+.setTab.on{border-color:var(--gold);background:rgba(245,196,81,.12);color:var(--gold)}.setTab.on small{color:#e9cf8a}
+.setTab .x{border:0;background:transparent;color:#8d8a85;font-size:14px;line-height:1;padding:0 0 0 2px;cursor:pointer}.setTab .x:hover{color:#ff8a80}
+.setTab.addset{border-style:dashed;color:var(--gold);background:transparent}
+.setsum{margin:8px 0 2px;border-top:1px dashed var(--line);padding-top:8px}
+.setsum .sr{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;cursor:pointer;color:#cfcfd6}.setsum .sr.on{color:var(--gold);font-weight:800}
+.setsum .sh{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
 .chip.on{border-color:var(--gold)!important;background:rgba(245,196,81,.14)!important;color:var(--gold)!important}
 #dmCopy.done{border-color:#2fb36b;color:#5fd393}
 .dmSteps{margin:6px 0 10px 18px;padding:0;font-size:14px;line-height:1.5;color:#e8e6e3}
@@ -379,6 +388,7 @@ html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!
     <!-- STAGE -->
     <section class="panel stage-col" id="stageCol">
       <div class="ptitle"><h2>Пакування</h2><span class="hint" id="boxHint">коробка підбирається автоматично</span></div>
+      <div class="setTabs" id="setTabs"></div>
       <div class="boxes" id="boxes"></div>
       <div class="stagewrap" id="stage"></div>
       
@@ -477,11 +487,11 @@ const DEFAULT_CATALOG = [
   {id:'proj',    name:'Проектори на двері (пара)', price:500, img:IMG.proj,    boxImg:IMG.proj_box, l:9,   w:6.5, t:3,   flatTop:true, anchor:'br'},
   {id:'brush',   name:'Щіточка для салону',        price:200, img:IMG.brush,   l:9,   w:4,   t:1.5, canStack:true, diag:true, anchor:'tr'},
   {id:'cover',   name:'Обкладинка для документів', price:550, img:IMG.cover,   l:14,  w:10,  t:1,   flatTop:true, pv:true, up:'v', anchor:'tl'},
-  {id:'plugs',   name:'Заглушки ременів (пара)',   price:180, img:IMG.plugs, boxImg:IMG.plugs_box, l:10, w:4, t:2.5, canStack:true, diag:true, cardDims:'8×4 см кожна · у наборі 10×4×2,5 см', anchor:'bl'},
+  {id:'plugs',   name:'Заглушки ременів (пара)',   price:380, img:IMG.plugs, boxImg:IMG.plugs_box, l:10, w:4, t:2.5, canStack:true, diag:true, cardDims:'8×4 см кожна · у наборі 10×4×2,5 см', anchor:'bl'},
   {id:'case',    name:'Чохол для ключів',          price:330, img:IMG.case,    l:8,   w:5,   t:2,   canStack:true, pv:true, anchor:'br'},
   {id:'vip',     name:'Брелок VIP',                price:220, img:IMG.vip,     l:11,  w:2,   t:2,   canStack:true, diag:true, pv:true, anchor:'tl', pref:'v'},
   {id:'key',     name:'Плетений брелок',           price:200, img:IMG.key,     l:11,  w:2.3, t:1.2, canStack:true, diag:true, pv:true, anchor:'tl', pref:'v'},
-  {id:'pitbull', name:'Ароматизатор Pitbull',      price:null,img:IMG.pitbull, l:11,  w:9.5, t:5,   flatTop:true, anchor:'tr', up:'n'},
+  {id:'pitbull', name:'Ароматизатор Pitbull',      price:450,img:IMG.pitbull, l:11,  w:9.5, t:5,   flatTop:true, anchor:'tr', up:'n'},
   {id:'aromavip',name:'Ароматизатор VIP',          price:550, img:IMG.aromavip,l:10,  w:9,   t:2,   flatTop:true, anchor:'tr', up:'n'},
   {id:'charger', name:'Зарядний пристрій',         price:800, img:IMG.charger, l:15.5,w:6,   t:3,   pv:true, anchor:'tr', pref:'v'},
   {id:'wallet',  name:'Портмоне',                  price:650, img:IMG.wallet,  l:14,  w:10,  t:2,   flatTop:true, pv:true, up:'v', anchor:'tl'},
@@ -525,12 +535,12 @@ function templateLayout(T, box){
   return {placed,fail:[],fits:true,template:T.name};
 }
 const PRESETS = [
-  {items:['key','plugs','brush']},                    // 580
-  {items:['cover','key','perfume']},                  // 1030
-  {items:['wallet','key','case']},                    // 1180
-  {items:['cover','key','aromavip','case']},          // 1630 (шаблон з фото BMW)
-  {items:['cover','key','aromavip','brush','plugs','case']}, // 2010 (шаблон з фото VW)
-  {items:['wallet','key','case','charger','proj']},   // 2480
+  {items:['key','plugs']},                                  // 580
+  {items:['cover','key','perfume']},                        // 1030
+  {items:['cover','key','plugs','perfume']},                // 1410
+  {items:['cover','key','aromavip','case']},                // 1630 (шаблон з фото BMW)
+  {items:['cover','key','aromavip','brush','plugs','case']},// 2210 (шаблон з фото VW)
+  {items:['wallet','key','case','charger','proj']},         // 2480
 ];
 
 const LS = {
@@ -566,6 +576,14 @@ function saveCatalog(){
 loadCatalog();
 
 let state = LS.get('state3', {box:'mid', auto:true, items:[], disc:0, discType:'pct'});
+/* ===== Кілька наборів: поля, що належать окремому набору ===== */
+const SET_KEYS=['items','box','auto','logo','perfume','plateText','plateFmt','plateCode','noBox'];
+const snapSet=()=>JSON.parse(JSON.stringify(Object.fromEntries(SET_KEYS.map(k=>[k,state[k]]))));
+function setFields(o){ for(const k of SET_KEYS) delete state[k]; Object.assign(state, JSON.parse(JSON.stringify(o))); if(!Array.isArray(state.items)) state.items=[]; }
+if(!Array.isArray(state.sets)||!state.sets.length){ state.sets=[snapSet()]; state.cur=0; }
+if(!(state.cur>=0&&state.cur<state.sets.length)) state.cur=0;
+function saveCur(){ state.sets[state.cur]=snapSet(); }
+function withSet(i,fn){ if(i===state.cur) return fn(); const bak=snapSet(); setFields(state.sets[i]); try{ return fn(); } finally { setFields(bak); } }
 if(!boxes.find(b=>b.id===state.box)) state.box='mid';
 if(state.auto===undefined) state.auto=true;
 state.items = [...new Set(state.items)].filter(id=>catalog.find(c=>c.id===id));
@@ -838,17 +856,22 @@ stage.addEventListener('drop',e=>{e.preventDefault();stage.classList.remove('dra
 
 /* ================= ПІДСУМОК ================= */
 let shownTotal=0, anim;
-function calc(){
+function setCalc(){
   const box=curBox();
   const goods=state.items.reduce((s,id)=>s+(byId(id).price||0),0);
   const boxPrice=(box.max&&state.items.length===1&&!state.noBox)?box.price:0;
-  const sub=goods+boxPrice;
+  return {box,goods,boxPrice,setSub:goods+boxPrice,n:state.items.length,missing:state.items.filter(id=>byId(id).price==null)};
+}
+function calc(){
+  const c=setCalc(); let sub=0;
+  const per=state.sets.map((s,i)=>{ const r= i===state.cur ? c : withSet(i,setCalc); sub+=r.setSub; return r; });
+  const box=c.box, goods=c.goods, boxPrice=c.boxPrice;
   const dv=CLIENT?0:(+state.disc||0);
   const mdisc= state.discType==='pct'? sub*Math.min(dv,100)/100 : Math.min(dv,sub);
   const pr=state.promo&&PROMOS[state.promo]; let pdisc=0;
   if(pr && !(pr.min&&sub<pr.min)) pdisc= pr.pct? sub*Math.min(pr.pct,100)/100 : Math.min(pr.uah||0,sub);
   const disc=Math.min(sub,mdisc+pdisc);
-  return {box,goods,boxPrice,sub,disc,pdisc,pr,total:Math.max(0,sub-disc), missing:state.items.filter(id=>byId(id).price==null)};
+  return {box,goods,boxPrice,setSub:c.setSub,per,multi:per.filter(r=>r.n).length>1,sub,disc,pdisc,pr,total:Math.max(0,sub-disc), missing:c.missing};
 }
 function renderStats(){
   try{renderMbar();}catch(e){}
@@ -879,8 +902,12 @@ function renderStats(){
   });
   if(k.pdisc>0){ const row=document.createElement('div'); row.className='line promoLine';
     row.innerHTML=`<div class="n">Промокод ${esc(state.promo)}</div><div class="s">−${fmt(k.pdisc)}</div>`; L.appendChild(row); }
+  if(state.sets.length>1){ const box=document.createElement('div'); box.className='setsum'; box.innerHTML='<div class="sh">Усі набори</div>';
+    k.per.forEach((r,i)=>{ const row=document.createElement('div'); row.className='sr'+(i===state.cur?' on':'');
+      row.innerHTML=`<span>Набір ${i+1} · ${r.n} ${plural(r.n)}</span><b>${fmt(r.setSub)} грн</b>`; row.onclick=()=>switchSet(i); box.appendChild(row); });
+    L.appendChild(box); }
   if(k.missing.length){const w=document.createElement('div');w.className='noitems';w.style.color='#ffb3ad';w.textContent='Без ціни: '+k.missing.map(id=>byId(id).name).join(', ')+' — впиши ціну в магазині.';L.appendChild(w);}
-  LS.set('state3',state);
+  saveCur(); LS.set('state3',state);
 }
 function animateTotal(to){
   cancelAnimationFrame(anim);
@@ -903,7 +930,35 @@ function toggleItem(id){
   }
   state.items=ids; state.box=f; render(); askPers(id);
 }
-function render(){ renderBoxes(); renderStage(); renderShop(); renderStats(); try{updPers();}catch(e){} try{renderPresets();}catch(e){} }
+function render(){ renderBoxes(); renderStage(); renderShop(); renderStats(); try{updPers();}catch(e){} try{renderPresets();}catch(e){} try{renderSetTabs();}catch(e){} }
+function renderSetTabs(){
+  const el=$('#setTabs'); if(!el) return; const k=calc(); el.innerHTML='';
+  state.sets.forEach((s,i)=>{ const r=k.per[i]; const b=document.createElement('div'); b.className='setTab'+(i===state.cur?' on':'');
+    b.innerHTML=`Набір ${i+1}${r.n?` <small>· ${fmt(r.setSub)} грн</small>`:''}${state.sets.length>1?'<button class="x" title="Видалити набір">✕</button>':''}`;
+    b.onclick=e=>{ if(e.target.classList.contains('x')) return; if(i!==state.cur) switchSet(i); };
+    const x=b.querySelector('.x'); if(x) x.onclick=e=>{ e.stopPropagation(); removeSet(i); };
+    el.appendChild(b); });
+  const a=document.createElement('div'); a.className='setTab addset'; a.textContent='+ ще набір'; a.title='Зібрати ще один набір (наприклад, подарунок іншій людині)'; a.onclick=addSet; el.appendChild(a);
+}
+function afterSwitch(){
+  try{ $('#plateIn').value=state.plateText||''; }catch(e){}
+  try{ renderLogos(); }catch(e){} try{ renderPerfumes(); }catch(e){} try{ renderFmts(); }catch(e){}
+  try{ applyPerfume(); }catch(e){}
+  render(); applyPlate();
+}
+function switchSet(i){ if(i===state.cur) return; saveCur(); state.cur=i; setFields(state.sets[i]); afterSwitch(); }
+function addSet(){
+  saveCur(); state.sets.push({items:[],box:'mid',auto:true,logo:null,perfume:state.perfume,plateText:'',plateFmt:'ua',plateCode:'',noBox:false});
+  state.cur=state.sets.length-1; setFields(state.sets[state.cur]);
+  try{ for(const k in _asked) delete _asked[k]; }catch(e){}
+  afterSwitch(); toast('Набір '+(state.cur+1)+' — додай товари');
+}
+function removeSet(i){
+  if(state.sets.length<2) return; saveCur();
+  if(state.sets[i].items.length && !confirm('Видалити набір '+(i+1)+'?')) return;
+  state.sets.splice(i,1); state.cur=Math.min(i===state.cur?i:(i<state.cur?state.cur-1:state.cur), state.sets.length-1);
+  setFields(state.sets[state.cur]); afterSwitch();
+}
 /* ===== Персоналізація: показуємо лише потрібне під обрані товари ===== */
 const LOGO_ITEMS=['cover','wallet','brush','aromavip','vip','key','plugs','case'];
 const needPerf=()=>has('perfume'), needLogo=()=>state.items.some(id=>LOGO_ITEMS.includes(id)), needPlate=()=>state.items.some(id=>PLATE_REG[id]);
@@ -953,7 +1008,7 @@ if(state.promo && PROMOS[state.promo]) { $('#promoIn').value=state.promo; setTim
 /* ===== Замовити в Direct ===== */
 const IG_USER='autopodushky';
 $('#dmBtn').onclick=async()=>{
-  if(!state.items.length){toast('Спершу додай товари');return;}
+  if(!state.sets.some((s,i)=>(i===state.cur?state.items:s.items).length)){toast('Спершу додай товари');return;}
   const t=summaryText(); let ok=false;
   try{ await navigator.clipboard.writeText(t); ok=true; }catch(e){}
   if(!ok){ const ta=$('#copybox'); ta.value=t; ta.style.display='block'; ta.select(); try{ ok=document.execCommand('copy'); }catch(e){} }
@@ -984,18 +1039,31 @@ $('#resetCatalog').onclick=()=>{
   saveCatalog(); render(); toast('Ціни скинуто');
 };
 
+function setSummary(i){
+  return withSet(i,()=>{ const c=setCalc(); const L=[];
+    state.items.forEach(id=>{ const it=byId(id); const nm= id==='perfume' ? 'Автопарфум '+(PERFUMES.find(x=>x.id===state.perfume)||PERFUMES[0]).name : it.name;
+      L.push(`• ${nm}${it.price!=null?' — '+fmt(it.price)+' грн':''}`); });
+    if(c.box.max&&state.items.length) L.push(state.noBox ? '• Без подарункової коробки' : `• Подарункова коробка ${c.box.w}×${c.box.d}×${c.box.h} см — ${c.boxPrice?fmt(c.boxPrice)+' грн':'у подарунок'}`);
+    if(state.items.some(id=>LOGO_ITEMS.includes(id))) L.push(`• Марка авто: ${state.logo==null?'не обрано':LOGOS[state.logo][0]}`);
+    if(state.plateText && state.items.some(id=>PLATE_REG[id])) L.push(`• Номерний знак: ${state.plateText}`);
+    return {L,c}; });
+}
 function summaryText(){
-  const k=calc();
-  const n=state.items.length;
-  let t= n>1 ? 'Вітаю! Хочу замовити набір 🎁\n\n' : 'Вітаю! Хочу замовити 🎁\n\n';
-  state.items.forEach(id=>{const it=byId(id); t+=`• ${it.name}${it.price!=null?' — '+fmt(it.price)+' грн':''}\n`;});
-  if(k.box.max&&state.items.length) t+= state.noBox ? '• Без подарункової коробки\n' : `• Подарункова коробка ${k.box.w}×${k.box.d}×${k.box.h} см — ${k.boxPrice?fmt(k.boxPrice)+' грн':'у подарунок'}\n`;
-  if(state.items.some(id=>EMB[id])) t+=`• Логотип: ${state.logo==null?'як на фото':LOGOS[state.logo][0]}\n`;
-  if(state.plateText && state.items.some(id=>PLATE_REG[id])) t+=`• Номерний знак: ${state.plateText}\n`;
-  t+='\n';
+  saveCur(); const k=calc();
+  const idx=state.sets.map((s,i)=>i).filter(i=>state.sets[i].items.length);
+  let t='';
+  if(idx.length<=1){
+    const i=idx.length?idx[0]:state.cur; const {L,c}=setSummary(i);
+    t+= c.n>1 ? 'Вітаю! Хочу замовити набір 🎁\n\n' : 'Вітаю! Хочу замовити 🎁\n\n';
+    t+=L.join('\n')+'\n\n';
+  } else {
+    t+=`Вітаю! Хочу замовити ${idx.length} ${idx.length<5?'набори':'наборів'} 🎁\n\n`;
+    idx.forEach((i,n)=>{ const {L,c}=setSummary(i); t+=`Набір ${n+1}:\n`+L.join('\n')+`\nЦіна набору: ${fmt(c.setSub)} грн\n\n`; });
+  }
   if(k.pdisc>0) t+=`Промокод ${state.promo}: −${fmt(k.pdisc)} грн\n`;
   if(k.disc>0) t+=`Без знижки: ${fmt(k.sub)} грн\n`;
-  t+= (n>1?'Ціна набору: ':'Разом: ')+`${fmt(k.total)} грн`;
+  if(idx.length>1) t+=`Разом за ${idx.length} ${idx.length<5?'набори':'наборів'}: ${fmt(k.total)} грн`;
+  else t+= ((k.per[idx[0]??state.cur]||{}).n>1?'Ціна набору: ':'Разом: ')+`${fmt(k.total)} грн`;
   return t;
 }
 $('#copyBtn').onclick=async()=>{
@@ -1089,7 +1157,7 @@ $('#mbGo').onclick=()=>$('#statsPanel').scrollIntoView({behavior:'smooth',block:
 function plural(n){const a=n%10,b=n%100; return (a===1&&b!==11)?'товар':(a>=2&&a<=4&&(b<10||b>=20))?'товари':'товарів';}
 function renderMbar(){
   const k=calc(); const n=state.items.length;
-  $('#mbCount').textContent=n+' '+plural(n);
+  $('#mbCount').textContent=(state.sets.length>1?`Набір ${state.cur+1} · `:'')+n+' '+plural(n);
   $('#mbBox').textContent=n? (state.noBox?'без коробки':(k.box.max?`коробка ${k.box.w}×${k.box.d}×${k.box.h} см`:'не поміщається в коробку')) : 'додай товари';
   $('#mbTotal').textContent=fmt(k.total)+' грн';
 }
@@ -1306,7 +1374,7 @@ async function setImage(){
   const k=calc(), box=curBox(); const W=1080, H=1350, cv=document.createElement('canvas'); cv.width=W; cv.height=H; const g=cv.getContext('2d');
   const bgG=g.createLinearGradient(0,0,0,H); bgG.addColorStop(0,'#1d1012'); bgG.addColorStop(1,'#0d0d0f'); g.fillStyle=bgG; g.fillRect(0,0,W,H);
   g.fillStyle='#fff'; g.font='700 46px Unbounded, Manrope, sans-serif'; g.textAlign='left'; g.fillText('AUTOPODUSHKY',60,95);
-  g.fillStyle='#b9b2a6'; g.font='500 28px Manrope, sans-serif'; g.fillText('Мій подарунковий набір',60,140);
+  g.fillStyle='#b9b2a6'; g.font='500 28px Manrope, sans-serif'; g.fillText(k.multi?`Мій подарунковий набір ${state.cur+1}`:'Мій подарунковий набір',60,140);
   // коробка
   const area={x:60,y:180,w:W-120,h:620};
   if(box.max && state.items.length){
@@ -1332,11 +1400,11 @@ async function setImage(){
   const lines=state.items.map(id=>{const it=byId(id); return [it.name, it.price==null?'—':fmt(it.price)+' грн'];});
   if(state.items.some(id=>EMB[id]) && state.logo!=null) lines.push(['Логотип', LOGOS[state.logo][0]]);
   if(state.plateText && state.items.some(id=>PLATE_REG[id])) lines.push(['Номер', state.plateText]);
-  if(k.pdisc>0) lines.push(['Промокод '+state.promo, '−'+fmt(k.pdisc)+' грн']);
+  if(k.pdisc>0 && !k.multi) lines.push(['Промокод '+state.promo, '−'+fmt(k.pdisc)+' грн']);
   const lh=Math.min(40,(H-y-150)/Math.max(1,lines.length));
   g.font=`600 ${Math.min(28,lh*0.72)}px Manrope, sans-serif`;
   for(const [a,b] of lines){ g.fillStyle='#e8e6e3'; g.fillText('• '+a,60,y); g.fillStyle='#f5c451'; g.textAlign='right'; g.fillText(b,W-60,y); g.textAlign='left'; y+=lh; }
-  g.fillStyle='#f5c451'; g.font='700 64px Unbounded, Manrope, sans-serif'; g.textAlign='right'; g.fillText(fmt(k.total)+' грн',W-60,H-70);
+  g.fillStyle='#f5c451'; g.font='700 64px Unbounded, Manrope, sans-serif'; g.textAlign='right'; g.fillText(fmt(k.multi?k.setSub:k.total)+' грн',W-60,H-70);
   g.fillStyle='#b9b2a6'; g.font='600 26px Manrope, sans-serif'; g.textAlign='left'; g.fillText('Разом:',60,H-84);
   return cv;
 }
