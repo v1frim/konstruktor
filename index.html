@@ -302,7 +302,14 @@ html.client .price-in{pointer-events:none;border-color:transparent;background:tr
 
 .persHead{font-size:13px;font-weight:800;margin-bottom:8px;color:#fff}.persHead small{font-weight:600;color:var(--muted)}
 .psec{margin-bottom:4px}
-.pmbox{max-width:520px;width:100%;max-height:88vh;overflow-y:auto}
+.pmbox{max-width:520px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:12px}
+.pmbox #pmBody{overflow-y:auto;flex:1 1 auto;min-height:0;margin:0 -4px;padding:0 4px}
+.pmbox .mrow{flex:none;margin-top:10px}
+.pmbox .perfRow{display:grid!important;grid-template-columns:repeat(3,1fr);gap:8px}
+.pmbox .perfBtn{width:auto;padding:6px 4px 8px;border-radius:14px}
+.pmbox .perfBtn img{width:100%;height:auto;aspect-ratio:3/4;object-fit:contain}
+.pmbox .perfBtn span{font-size:12.5px;min-height:30px}
+.pmHint{font-size:12.5px;color:var(--muted);margin:-4px 0 10px}
 .pmbox .psec label{display:block;font-size:13px;font-weight:800;margin-bottom:6px}.pmbox .psec label small{font-weight:600;color:var(--muted)}
 .pmbox .psec{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px}
 .pmbox .logoRow{grid-auto-flow:row;grid-template-rows:none;grid-template-columns:repeat(auto-fill,44px);overflow:visible;justify-content:center}
@@ -454,6 +461,7 @@ html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!
 <div class="modal" id="pmodal">
   <div class="mbox pmbox">
     <h3 id="pmTitle">Налаштуй товар</h3>
+    <div class="pmHint" id="pmHint"></div>
     <div id="pmBody"></div>
     <div class="mrow"><button class="btn" id="pmOk">Готово</button></div>
   </div>
@@ -968,7 +976,8 @@ function updPers(){
   $('#secPerf').style.display=a?'':'none'; $('#secLogo').style.display=b?'':'none'; $('#secPlate').style.display=c?'':'none';
   $('#persBox').style.display=(a||b||c)?'':'none';
 }
-const _asked={};
+const _asked={}; let _pmAuto=false;
+function pmAutoClose(){ if(_pmAuto && $('#pmodal').classList.contains('on')) setTimeout(()=>{ if($('#pmodal').classList.contains('on')) closePers(); },380); }
 function askPers(id){
   const need=[];
   if(id==='perfume'&&!_asked.perf) need.push('perf');
@@ -978,6 +987,8 @@ function askPers(id){
   need.forEach(k=>_asked[k]=1);
   const body=$('#pmBody'); const map={perf:'#secPerf',logo:'#secLogo',plate:'#secPlate'};
   need.forEach(k=>{ const s=$(map[k]); s.style.display=''; body.appendChild(s); });
+  _pmAuto = need.length===1 && need[0]!=='plate';
+  $('#pmHint').textContent = _pmAuto ? 'Натисни на потрібний — вікно закриється саме' : 'Обери й натисни «Готово» внизу';
   $('#pmTitle').textContent = need.length>1 ? 'Налаштуй «'+byId(id).name+'»' : ({perf:'Обери аромат',logo:'Обери марку авто',plate:'Свій номерний знак'})[need[0]];
   $('#pmodal').classList.add('on');
 }
@@ -1234,7 +1245,7 @@ function renderLogos(){
   const row=$('#logoRow'); row.innerHTML='';
   LOGO_ORDER.map(i=>[LOGOS[i],i]).forEach(([[n,src],i])=>{ const b=document.createElement('button'); b.className='logoBtn'+(state.logo===i?' on':''); b.title=n;
     b.innerHTML=`<img src="${src}" alt="${n}" loading="lazy">`;
-    b.onclick=()=>{ state.logo=(state.logo===i)?null:i; LS.set('state3',state); renderLogos(); applyPlate(); };
+    b.onclick=()=>{ const inM=$('#pmodal').classList.contains('on'); state.logo=(state.logo===i&&!inM)?null:i; LS.set('state3',state); renderLogos(); applyPlate(); pmAutoClose(); };
     row.appendChild(b); });
   $('#logoName').textContent= state.logo==null ? 'не обрано' : LOGOS[state.logo][0];
 }
@@ -1252,7 +1263,7 @@ function renderPerfumes(){
   const row=$('#perfRow'); row.innerHTML='';
   PERFUMES.forEach(pf=>{ const b=document.createElement('button'); b.className='perfBtn'+(curPerf().id===pf.id?' on':''); b.title=pf.name;
     b.innerHTML=`<img src="${pf.card}" alt="" loading="lazy"><span>${esc(pf.name.replace(/^(Tom Ford|Hugo Boss|Dior|Lacoste|Versace Man|Victoria's Secret|Nasomatto|D&G 3) ?/,''))}</span>`;
-    b.onclick=()=>{ state.perfume=pf.id; LS.set('state3',state); renderPerfumes(); applyPerfume(); document.body.classList.add('noanim'); render(); setTimeout(()=>document.body.classList.remove('noanim'),50); };
+    b.onclick=()=>{ state.perfume=pf.id; LS.set('state3',state); renderPerfumes(); applyPerfume(); document.body.classList.add('noanim'); render(); setTimeout(()=>document.body.classList.remove('noanim'),50); pmAutoClose(); };
     row.appendChild(b); });
   $('#perfName').textContent=curPerf().name;
 }
