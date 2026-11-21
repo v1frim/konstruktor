@@ -652,13 +652,20 @@ function tryPack(box, items, order, rnd, mode, plain){
       for(const x of cx) for(const y of cy){
         if(x<-EPS||y<-EPS||x+o.fw>box.w*1.03+EPS||y+o.fd>box.d*1.03+EPS) continue;
         const r={x,y,fw:o.fw,fd:o.fd};
-        let base=0; const ov=[];
-        for(const p of placed){ const a=overlap(r,p); if(a>0){ ov.push([p,a]); base=Math.max(base,p.top); } }
+        let base=0; const ov=[]; let tuck=0;
+        for(const p of placed){ const a=overlap(r,p); if(a>0){
+          if(mode===3 && BOTTOM3.includes(it.id) && BOTTOM3.includes(p.it.id) && p.base===0 && a<=0.12*Math.min(o.fw*o.fd,p.fw*p.fd)){ tuck+=a; continue; }
+          ov.push([p,a]); base=Math.max(base,p.top); } }
         if(base+o.t>HMAX+EPS) continue;
         if(base>0 && mode===3){
-          if(NOSTACK3.includes(it.id)) continue;
+          if(NOSTACK3.includes(it.id) || BOTTOM3.includes(it.id)) continue;
           let sup=0, bad=false;
-          for(const [p,a] of ov){ if(p.it.noTop || NOSTACK3.includes(p.it.id)){bad=true;break;} if(Math.abs(p.top-base)<0.6) sup+=a; }
+          for(const [p,a] of ov){ if(p.it.noTop || (NOSTACK3.includes(p.it.id) && !BOTTOM3.includes(p.it.id))){bad=true;break;}
+            if(BOTTOM3.includes(p.it.id)){ const cx=p.x+p.fw/2, cy=p.y+p.fd/2;
+              const lx=cx, ly=p.y+p.fd*0.4, lr=Math.min(p.fw,p.fd)*0.22; // зона логотипа обкладинки/портмоне
+              const hitsLogo=(p.it.id==='cover'||p.it.id==='wallet') && x<lx+lr && x+o.fw>lx-lr && y<ly+lr && y+o.fd>ly-lr;
+              if(a>0.4*p.fw*p.fd || hitsLogo || (cx>x&&cx<x+o.fw&&cy>y&&cy<y+o.fd)){bad=true;break;} }
+            if(Math.abs(p.top-base)<0.6) sup+=a; }
           if(bad || sup < 0.15*o.fw*o.fd) continue;
         } else if(base>0){
           if(mode===0 || (mode===1 && !it.filler) || !it.canStack || o.diag) continue;
@@ -667,11 +674,11 @@ function tryPack(box, items, order, rnd, mode, plain){
           if(bad || sup < (it.filler?0.3:0.6)*o.fw*o.fd) continue;
         }
         let cov=0; if(base>0) for(const [p,a] of ov) cov+=a/(p.fw*p.fd);
-        const score=(base>0?1e6+cov*2e5:0)+(o.diag?5e5:0)+(plain? y*100+x : anchorScore(it,o,x,y,box)*100+y+x*0.01);
-        if(!best||score<best.score) best={score,x,y,o,base};
+        const score=(base>0?1e6+cov*2e5:0)+(o.diag?5e5:0)+tuck*2e3+(plain? y*100+x : anchorScore(it,o,x,y,box)*100+y+x*0.01);
+        if(!best||score<best.score) best={score,x,y,o,base,tuck};
       }
     }
-    if(best) placed.push({it,x:best.x,y:best.y,fw:best.o.fw,fd:best.o.fd,t:best.o.t,base:best.base,top:best.base+best.o.t,o:best.o});
+    if(best) placed.push({it,x:best.x,y:best.y,fw:best.o.fw,fd:best.o.fd,t:best.o.t,base:best.base,top:best.base+best.o.t,o:best.o,tuck:best.tuck||0});
     else fail.push(it);
   }
   return {placed,fail,box};
@@ -679,6 +686,8 @@ function tryPack(box, items, order, rnd, mode, plain){
 const packCache=new Map();
 // режим 3 («гнучко», як на реальних фото наборів): м'які/пласкі товари можуть частково лягати один на одного
 const NOSTACK3=['holder','pitbull','magnet'];
+// «нижні» товари: лежать тільки на дні (на них можна частково класти дрібне, збоку); краї сусідніх нижніх можуть трохи заходити один під одного
+const BOTTOM3=['cover','wallet','aromavip','pitbull','holder','proj','magnet','charger'];
 // куди «тягнеться» товар: tl — лівий верх, tr — правий верх, bl — лівий низ, br — правий низ
 function anchorScore(it,o,x,y,box){
   const L=x, R=box.w-x-o.fw, T=y, B=box.d-y-o.fd;
@@ -696,7 +705,8 @@ function quality(p){ // менше — краще: спершу все вміс�
   // наскільки верхні товари закривають нижні (0..1 на кожен) — щоб не загороджували одне одного
   let cover=0;
   p.placed.forEach(q=>{ if(q.base>0) p.placed.forEach(r=>{ if(r!==q && r.base<q.base){ cover+=overlap(q,r)/(r.fw*r.fd)*(q.it.filler?0.3:1); } }); });
-  return p.fail.length*1e6+st*1e4+cover*2e4+dg*1e3+spread;
+  const tk=p.placed.reduce((s,q)=>s+(q.tuck||0),0);
+  return p.fail.length*1e6+st*1e4+cover*2e4+dg*1e3+tk*300+spread;
 }
 function packMode(box, ids, tries, mode){
   const key=box.id+'|'+ids.slice().sort().join(',')+'|'+tries+'|m'+mode;
@@ -950,7 +960,7 @@ function animateTotal(to){
 
 /* ================= ДІЇ ================= */
 function toggleItem(id){
-  if(has(id)){ state.items=state.items.filter(x=>x!==id); applyAuto(); render(); return; }
+  if(has(id)){ state.items=state.items.filter(x=>x!==id); try{ if(!needPerf()) delete _asked.perf; if(!needPlate()) delete _asked.plate; if(!needLogo()) delete _asked.logo; }catch(e){} applyAuto(); render(); return; }
   const ids=[...state.items,id], it=byId(id);
   const f=smallestFit(ids);
   if(!f){
