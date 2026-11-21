@@ -146,6 +146,8 @@ textarea.copybox{width:100%;min-height:120px;margin-top:8px;background:#0f0f12;b
 /* MODAL */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:40;padding:16px}
 .modal.on{display:flex}
+#pmodal{padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom))}
+.pmbox{position:relative}.pmX{position:absolute;top:10px;right:12px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#0f0f12;color:var(--text,#fff);font-size:18px;line-height:1;cursor:pointer}
 .mbox{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;width:100%;max-width:400px}
 .mbox h3{font-family:Unbounded,sans-serif;font-size:15px;margin:0 0 14px}
 .mbox label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;font-weight:700}
@@ -303,7 +305,7 @@ html.client .price-in{pointer-events:none;border-color:transparent;background:tr
 
 .persHead{font-size:13px;font-weight:800;margin-bottom:8px;color:#fff}.persHead small{font-weight:600;color:var(--muted)}
 .psec{margin-bottom:4px}
-.pmbox{max-width:520px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:12px}
+.pmbox{max-width:520px;width:100%;max-height:90vh;max-height:calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));display:flex;flex-direction:column;overflow:hidden;padding-bottom:12px}
 .pmbox #pmBody{overflow-y:auto;flex:1 1 auto;min-height:0;margin:0 -4px;padding:0 4px}
 .pmbox .mrow{flex:none;margin-top:10px}
 .pmbox .perfRow{display:grid!important;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -471,7 +473,7 @@ html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!
 </div>
 <div class="modal" id="pmodal">
   <div class="mbox pmbox">
-    <h3 id="pmTitle">Налаштуй товар</h3>
+    <button class="pmX" id="pmX" aria-label="Закрити">✕</button><h3 id="pmTitle">Налаштуй товар</h3>
     <div class="pmHint" id="pmHint"></div>
     <div id="pmBody"></div>
     <div class="mrow"><button class="btn" id="pmOk">Готово</button></div>
@@ -644,7 +646,7 @@ function tryPack(box, items, order, rnd, mode, plain){
       if(mode>0){ xs.add('A'+(p.x+p.fw)); xs.add('B'+p.x); ys.add('C'+(p.y+p.fd)); ys.add('D'+p.y); }});
     let best=null;
     for(const o of oris){
-      const HMAX = mode===3 ? box.h*1.15 : box.h;
+      const HMAX = mode>=3 ? box.h*1.15 : box.h;
       if(o.t>box.h+EPS) continue;
       const res=v=>{ if(typeof v!=='string') return v; const n=+v.slice(1);
         switch(v[0]){ case 'L': return n-o.fw; case 'T': return n-o.fd; case 'A': return n-0.45*o.fw; case 'B': return n-0.55*o.fw; case 'C': return n-0.45*o.fd; default: return n-0.55*o.fd; } };
@@ -654,33 +656,38 @@ function tryPack(box, items, order, rnd, mode, plain){
         const r={x,y,fw:o.fw,fd:o.fd};
         let base=0; const ov=[]; let tuck=0, zone=0;
         for(const p of placed){ const a=overlap(r,p); if(a>0){
-          if(mode===3 && BOTTOM3.includes(it.id) && BOTTOM3.includes(p.it.id) && p.base===0 && a<=0.12*Math.min(o.fw*o.fd,p.fw*p.fd)){ tuck+=a; continue; }
-          if(mode===3 && p.it.id==='charger' && !BOTTOM3.includes(it.id)){ const cp=chargerParts(p); if(cp && overlap(r,cp.body)===0){ ov.push([p,a,true]); base=Math.max(base,p.base+CHG_LOW_T); continue; } }
+          if(mode>=3 && BOTTOM3.includes(it.id) && BOTTOM3.includes(p.it.id) && p.base===0 && a<=0.12*Math.min(o.fw*o.fd,p.fw*p.fd)){ tuck+=a; continue; }
+          if(mode>=3 && p.it.id==='charger' && !BOTTOM3.includes(it.id)){ const cp=chargerParts(p); if(cp && overlap(r,cp.body)===0){ ov.push([p,a,true]); base=Math.max(base,p.base+CHG_LOW_T); continue; } }
           ov.push([p,a]); base=Math.max(base,p.top); } }
         if(base+o.t>HMAX+EPS) continue;
-        if(base>0 && mode===3){
+        if(base>0 && mode>=3){
           if(NOSTACK3.includes(it.id) || BOTTOM3.includes(it.id)) continue;
           let sup=0, bad=false;
           for(const [p,a,low] of ov){ if(p.it.noTop || (NOSTACK3.includes(p.it.id) && !BOTTOM3.includes(p.it.id))){bad=true;break;}
             if(low){ if(Math.abs(p.base+CHG_LOW_T-base)<0.6) sup+=a; continue; }
             if(BOTTOM3.includes(p.it.id)){ const cx=p.x+p.fw/2, cy=p.y+p.fd/2;
-              if(p.it.id==='cover'||p.it.id==='wallet'){ const [lz,pz]=coverZones(p);
-                if(overlap(r,lz)>0){bad=true;break;} zone+=overlap(r,pz)/(pz.fw*pz.fd); }
-              if(a>0.4*p.fw*p.fd || (cx>x&&cx<x+o.fw&&cy>y&&cy<y+o.fd)){bad=true;break;} }
+              const isCov=(p.it.id==='cover'||p.it.id==='wallet');
+              if(isCov){ const [lz,pz,mz]=coverZones(p);
+                if(overlap(r,lz)>0 || (mode===3 && overlap(r,mz)>0)){bad=true;break;} zone+=overlap(r,pz)/(pz.fw*pz.fd); }
+              else if(cx>x&&cx<x+o.fw&&cy>y&&cy<y+o.fd){bad=true;break;}
+              if(a>0.4*p.fw*p.fd){bad=true;break;} }
+            if(((p.covered||0)+a) > (VISMAX(p)+(mode===4?0.15:0))*p.fw*p.fd){bad=true;break;}
             if(Math.abs(p.top-base)<0.6) sup+=a; }
           if(bad || sup < 0.15*o.fw*o.fd) continue;
         } else if(base>0){
           if(mode===0 || (mode===1 && !it.filler) || !it.canStack || o.diag) continue;
           let sup=0, bad=false;
           for(const [p,a] of ov){ if((p.it.id==='cover'||p.it.id==='wallet') && coverZones(p).some(z=>overlap(r,z)>0)){bad=true;break;}
+            if(((p.covered||0)+a) > VISMAX(p)*p.fw*p.fd){bad=true;break;}
             if(Math.abs(p.top-base)<EPS){ if((!p.it.flatTop && !it.filler) || p.it.noTop){bad=true;break;} sup+=a; } }
           if(bad || sup < (it.filler?0.3:0.6)*o.fw*o.fd) continue;
         }
-        let cov=0; if(base>0) for(const [p,a] of ov) cov+=a/(p.fw*p.fd);
+        let cov=0; if(base>0) for(const [p,a] of ov) cov+=a/(p.fw*p.fd)*((p.it.id==='cover'||p.it.id==='wallet')?0.35:1);
         const score=(base>0?1e6+cov*2e5:0)+(o.diag?5e5:0)+tuck*2e3+zone*6e5+(plain? y*100+x : anchorScore(it,o,x,y,box)*100+y+x*0.01);
-        if(!best||score<best.score) best={score,x,y,o,base,tuck,zone};
+        if(!best||score<best.score) best={score,x,y,o,base,tuck,zone,ov};
       }
     }
+    if(best && best.base>0) for(const [p,a] of best.ov) p.covered=(p.covered||0)+a;
     if(best) placed.push({it,x:best.x,y:best.y,fw:best.o.fw,fd:best.o.fd,t:best.o.t,base:best.base,top:best.base+best.o.t,o:best.o,tuck:best.tuck||0,zone:best.zone||0});
     else fail.push(it);
   }
@@ -693,13 +700,15 @@ const NOSTACK3=['holder','pitbull','magnet'];
 const BOTTOM3=['cover','wallet','aromavip','pitbull','holder','proj','magnet','charger'];
 // зони обкладинки/портмоне, які не можна закривати: логотип і номерний знак (частки ширини/висоти фото)
 function coverZones(p){
-  const Z=[[0.47-0.27*10/14*1.0,0.36-0.19,0.47+0.27*10/14*1.0,0.36+0.19],[0.13,0.63,0.86,0.83]]; // [u0,v0,u1,v1]
+  const Z=[[0.47-0.27*10/14*1.0,0.36-0.19,0.47+0.27*10/14*1.0,0.36+0.19],[0.13,0.63,0.86,0.83],[0.27,0.65,0.72,0.81]]; // логотип, номер, середина номера [u0,v0,u1,v1]
   const port=p.fd>=p.fw;
   return Z.map(([u0,v0,u1,v1])=> port ? {x:p.x+u0*p.fw,y:p.y+v0*p.fd,fw:(u1-u0)*p.fw,fd:(v1-v0)*p.fd}
                                       : {x:p.x+(1-v1)*p.fw,y:p.y+u0*p.fd,fw:(v1-v0)*p.fw,fd:(u1-u0)*p.fd});
 }
 // зарядний: тонка частина (штекер, ~40% довжини) — на неї можна покласти дрібне; корпус — ні
 const CHG_LOW_T=1.6;
+// скільки площі товару можна закрити іншими (решта має бути видно)
+const VISMAX=p=>(p.it.id==='cover'||p.it.id==='wallet')?0.55:(p.it.filler?0.7:0.45);
 function chargerParts(p){
   if(p.o.diag) return null;
   if(p.o.rot===0) return {low:{x:p.x,y:p.y,fw:p.fw*0.4,fd:p.fd}, body:{x:p.x+p.fw*0.4,y:p.y,fw:p.fw*0.6,fd:p.fd}};
@@ -721,7 +730,7 @@ function quality(p){ // менше — краще: спершу все вміс�
   const spread=p.placed.reduce((s,q)=>s+anchorScore(q.it,q.o,q.x,q.y,p.box)*((q.it.id==='cover'||q.it.id==='wallet'||q.it.up==='n')?1500:1),0);
   // наскільки верхні товари закривають нижні (0..1 на кожен) — щоб не загороджували одне одного
   let cover=0;
-  p.placed.forEach(q=>{ if(q.base>0) p.placed.forEach(r=>{ if(r!==q && r.base<q.base){ cover+=overlap(q,r)/(r.fw*r.fd)*(q.it.filler?0.3:1); } }); });
+  p.placed.forEach(q=>{ if(q.base>0) p.placed.forEach(r=>{ if(r!==q && r.base<q.base){ cover+=overlap(q,r)/(r.fw*r.fd)*(q.it.filler?0.3:1)*((r.it.id==='cover'||r.it.id==='wallet')?0.35:1); } }); });
   const tk=p.placed.reduce((s,q)=>s+(q.tuck||0),0), zn=p.placed.reduce((s,q)=>s+(q.zone||0),0);
   return p.fail.length*1e6+st*1e4+cover*2e4+zn*1.5e5+dg*1e3+tk*300+spread;
 }
@@ -737,10 +746,12 @@ function packMode(box, ids, tries, mode){
     let best=tryPack(box,items,base,null,mode), bq=quality(best);
     const r=rng(12345+ids.length);
     for(let i=0;i<tries && bq>=1;i++){
-      const ord=base.slice().sort(()=>r()-.5);
+      let ord=base.slice().sort(()=>r()-.5);
+      if(mode>=3){ const bt=it=>BOTTOM3.includes(it.id)?((it.id==='cover'||it.id==='wallet')?2:1):0; ord=ord.sort((a,b)=>bt(b)-bt(a)); } // спершу те, що лежить на дні
       const p=tryPack(box,items,ord,r,mode,i%3===2), q=quality(p);
       if(q<bq){best=p;bq=q;}
       if(!best.fail.length && i>tries*0.6) break;
+      if(mode<4 && i>=22 && best.fail.length>=(mode===3?1:2)) break; // безнадійно — не марнуємо час
     }
     res={...best,fits:best.fail.length===0};
   }
@@ -752,7 +763,8 @@ function pack(box, ids, tries=70){
   const T=findTemplate(ids); if(T && box.id===T.box) return templateLayout(T,box);
   for(const m of [0,1]){ const f=packMode(box,ids,tries,m); if(f.fits) return f; }
   const m2=packMode(box,ids,tries,2); if(m2.fits) return m2;
-  const m3=packMode(box,ids,tries,3); return m3.fits?m3:m2;
+  const m3=packMode(box,ids,tries,3); if(m3.fits) return m3;
+  const m4=packMode(box,ids,tries,4); return m4.fits?m4:m2;
 }
 function smallestFit(ids,tries){
   if(!ids.length) return null;
@@ -762,6 +774,7 @@ function smallestFit(ids,tries){
   for(const id of AUTO_ORDER){ if(packMode(boxById(id),ids,tries||70,2).fits) return id; }
   const area=ids.reduce((s,i)=>{const it=byId(i); return s+(it.l*it.w);},0), maxT=Math.max(...ids.map(i=>byId(i).t));
   for(const id of AUTO_ORDER){ const b=boxById(id); if(area>2.1*b.w*b.d || maxT>b.h+EPS) continue; if(packMode(b,ids,tries||70,3).fits) return id; }
+  for(const id of AUTO_ORDER){ const b=boxById(id); if(area>2.1*b.w*b.d || maxT>b.h+EPS) continue; if(packMode(b,ids,tries||70,4).fits) return id; }
   return null;
 }
 function why(box, ids){ // пояснення, чому не влазить
@@ -1053,7 +1066,7 @@ function closePers(){
   const pb=$('#persBox'); ['#secPerf','#secPlate'].forEach(s=>pb.appendChild($(s))); $('#logoHome').appendChild($('#secLogo'));
   $('#pmodal').classList.remove('on'); updPers();
 }
-$('#pmOk').onclick=closePers;
+$('#pmOk').onclick=closePers; $('#pmX').onclick=closePers;
 $('#pmodal').onclick=e=>{ if(e.target.id==='pmodal') closePers(); };
 /* ===== Промокод ===== */
 function promoMsg(){
