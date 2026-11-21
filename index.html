@@ -751,9 +751,12 @@ function wouldFit(id){
   const box=curBox();
   return !!smallestFit(ids,25);
 }
+/* Порядок у магазині — за % продажів (21.11), схожі товари поруч */
+const SHOP_ORDER=['cover','wallet','vip','key','plate','case','aromavip','perfume','pitbull','brush','proj','plugs','charger','magnet','holder'];
 function renderShop(){
   const el=$('#shop'); el.innerHTML='';
-  catalog.forEach(it=>{
+  const rank=id=>{ const i=SHOP_ORDER.indexOf(id); return i<0?999:i; };
+  catalog.slice().sort((a,b)=>rank(a.id)-rank(b.id)).forEach(it=>{
     const on=has(it.id);
     const ok=on||wouldFit(it.id);
     const c=document.createElement('div'); c.className='card'+(on?' in':'')+(ok?'':' dim');
