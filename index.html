@@ -329,12 +329,15 @@ html.client .price-in{pointer-events:none;border-color:transparent;background:tr
 .line.promoLine .n{color:#5fd393}.line.promoLine .s{color:#5fd393}
 html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!important}
 .dmbox{max-width:460px;width:100%}
-.setTabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.setTabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;align-items:center}
+.logoHome{margin-bottom:10px}.logoHome .logoRow{margin-bottom:2px}
+.boxes:empty{display:none}
 .setTab{display:flex;align-items:center;gap:6px;white-space:nowrap;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:7px 10px;font-size:13px;font-weight:800;color:#d9d7d2;cursor:pointer;user-select:none}
 .setTab small{font-weight:700;color:var(--muted)}
 .setTab.on{border-color:var(--gold);background:rgba(245,196,81,.12);color:var(--gold)}.setTab.on small{color:#e9cf8a}
 .setTab .x{border:0;background:transparent;color:#8d8a85;font-size:14px;line-height:1;padding:0 0 0 2px;cursor:pointer}.setTab .x:hover{color:#ff8a80}
-.setTab.clr{order:99;margin-left:auto;color:#ffb3ad;border-color:#5a2a2a;background:rgba(229,50,45,.08)}
+.setTgl{order:98;margin-left:auto;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:5px 10px}
+.setTab.clr{order:99;color:#ffb3ad;border-color:#5a2a2a;background:rgba(229,50,45,.08)}
 .setTab.addset{border-style:dashed;color:var(--gold);background:transparent}
 .setsum{margin:8px 0 2px;border-top:1px dashed var(--line);padding-top:8px}
 .setsum .sr{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;cursor:pointer;color:#cfcfd6}.setsum .sr.on{color:var(--gold);font-weight:800}
@@ -371,7 +374,7 @@ html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!
         <div class="perfRow" id="perfRow"></div>
         </div>
         <div class="psec" id="secLogo">
-        <label>Марка авто <b id="logoName" class="logoName">не обрано</b></label>
+        <label>Марка авто <small>— логотип на товарах набору</small> <b id="logoName" class="logoName">не обрано</b></label>
         <div class="logoRow" id="logoRow"></div>
         </div>
         <div class="psec" id="secPlate">
@@ -398,6 +401,7 @@ html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!
     <section class="panel stage-col" id="stageCol">
       <div class="ptitle"><h2>Пакування</h2><span class="hint" id="boxHint">коробка підбирається автоматично</span></div>
       <div class="setTabs" id="setTabs"></div>
+      <div class="plateBox logoHome" id="logoHome"></div>
       <div class="boxes" id="boxes"></div>
       <div class="stagewrap" id="stage"></div>
       
@@ -777,17 +781,14 @@ function renderBoxes(){
   const el=$('#boxes'); el.innerHTML='';
   const b=curBox();
   const d=document.createElement('div'); d.className='boxstrip';
-  if(!state.items.length){
-    d.innerHTML=`<span class="redbox empty" style="width:40px;height:40px"></span><div><b>Коробка</b><div class="bp">додай товари — розмір коробки підбереться сам</div></div>`;
-  } else if(!b.max){
+  if(!state.items.length){ return; }
+  else if(!b.max){
     d.innerHTML=`<span class="redbox empty" style="width:40px;height:40px"></span><div><b>Набір не поміщається в жодну коробку</b></div>`;
   } else {
     const nb=!!state.noBox;
     const sub = nb ? 'товари без пакування' : [state.items.length===1?(b.price?'+ '+fmt(b.price)+' грн':''):'у подарунок до набору', (!CLIENT&&findTemplate(state.items))?'розкладка як на вашому фото':''].filter(Boolean).join(' · ');
     d.innerHTML=`${nb?'<span class="redbox empty" style="width:40px;height:40px"></span>':boxSvg(b)}<div class="bsinfo"><b>${nb?'Без подарункової коробки':`Подарункова коробка ${b.w}×${b.d}×${b.h} см`}</b>${sub?`<div class="bp">${sub}</div>`:''}</div>
-      <label class="tgl" title="Подарункова коробка"><input type="checkbox" ${nb?'':'checked'}><span></span>коробка</label>
       <label class="bprice">ціна коробки <input type="number" min="0" value="${b.price}"> грн</label>`;
-    d.querySelector('.tgl input').onchange=e=>{ state.noBox=!e.target.checked; render(); };
     const inp=d.querySelector('.bprice input');
     inp.oninput=()=>{b.price=Math.max(0,+inp.value||0);saveCatalog();renderStats();renderSaved();};
   }
@@ -948,6 +949,10 @@ function renderSetTabs(){
     b.onclick=e=>{ if(e.target.classList.contains('x')) return; if(i!==state.cur) switchSet(i); };
     const x=b.querySelector('.x'); if(x) x.onclick=e=>{ e.stopPropagation(); removeSet(i); };
     el.appendChild(b); });
+  { const g=document.createElement('label'); g.className='tgl setTgl'; g.title='Подарункова коробка';
+    g.innerHTML=`<input type="checkbox" ${state.noBox?'':'checked'}><span></span>коробка`;
+    g.querySelector('input').onchange=e=>{ state.noBox=!e.target.checked; render(); toast(state.noBox?'Без подарункової коробки':'З подарунковою коробкою'); };
+    el.appendChild(g); }
   if(state.items.length){ const c=document.createElement('div'); c.className='setTab clr'; c.textContent='🗑 Очистити'; c.title='Прибрати всі товари з цього набору'; c.onclick=()=>{ state.items=[]; render(); toast('Набір очищено'); }; el.appendChild(c); }
   const a=document.createElement('div'); a.className='setTab addset'; a.textContent='+ ще набір'; a.title='Зібрати ще один набір (наприклад, подарунок іншій людині)'; a.onclick=addSet; el.appendChild(a);
 }
@@ -976,15 +981,16 @@ const needPerf=()=>has('perfume'), needLogo=()=>state.items.some(id=>LOGO_ITEMS.
 function updPers(){
   if($('#pmodal').classList.contains('on')) return;
   const a=needPerf(), b=needLogo(), c=needPlate();
-  $('#secPerf').style.display=a?'':'none'; $('#secLogo').style.display=b?'':'none'; $('#secPlate').style.display=c?'':'none';
-  $('#persBox').style.display=(a||b||c)?'':'none';
+  $('#secPerf').style.display=a?'':'none'; $('#secLogo').style.display=''; $('#secPlate').style.display=c?'':'none';
+  $('#persBox').style.display=(a||c)?'':'none';
 }
+$('#logoHome').appendChild($('#secLogo'));
 const _asked={}; let _pmAuto=false;
 function pmAutoClose(){ if(_pmAuto && $('#pmodal').classList.contains('on')) setTimeout(()=>{ if($('#pmodal').classList.contains('on')) closePers(); },380); }
 function askPers(id){
   const need=[];
   if(id==='perfume'&&!_asked.perf) need.push('perf');
-  if(LOGO_ITEMS.includes(id)&&!_asked.logo) need.push('logo');
+  if(LOGO_ITEMS.includes(id)&&!_asked.logo&&state.logo==null) need.push('logo');
   if(PLATE_REG[id]&&!_asked.plate) need.push('plate');
   if(!need.length) return;
   need.forEach(k=>_asked[k]=1);
@@ -996,7 +1002,7 @@ function askPers(id){
   $('#pmodal').classList.add('on');
 }
 function closePers(){
-  const pb=$('#persBox'); ['#secPerf','#secLogo','#secPlate'].forEach(s=>pb.appendChild($(s)));
+  const pb=$('#persBox'); ['#secPerf','#secPlate'].forEach(s=>pb.appendChild($(s))); $('#logoHome').appendChild($('#secLogo'));
   $('#pmodal').classList.remove('on'); updPers();
 }
 $('#pmOk').onclick=closePers;
