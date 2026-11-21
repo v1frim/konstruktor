@@ -507,7 +507,7 @@ const DEFAULT_CATALOG = [
   {id:'key',     name:'Плетений брелок',           price:200, img:IMG.key,     l:11,  w:2.3, t:1.2, canStack:true, diag:true, pv:true, anchor:'tl', pref:'v'},
   {id:'pitbull', name:'Ароматизатор Pitbull',      price:450,img:IMG.pitbull, l:11,  w:9.5, t:5,   flatTop:true, anchor:'tr', up:'n'},
   {id:'aromavip',name:'Ароматизатор VIP',          price:550, img:IMG.aromavip,l:10,  w:9,   t:2,   flatTop:true, anchor:'tr', up:'n'},
-  {id:'charger', name:'Зарядний пристрій',         price:800, img:IMG.charger, l:15.5,w:6,   t:3,   pv:true, anchor:'tr', pref:'v'},
+  {id:'charger', name:'Зарядний пристрій',         price:800, img:IMG.charger, l:15.5,w:6,   t:3,   pv:true, diag:true, anchor:'tr', pref:'v'},
   {id:'wallet',  name:'Портмоне',                  price:650, img:IMG.wallet,  l:14,  w:10,  t:2,   flatTop:true, pv:true, up:'v', anchor:'tl'},
   {id:'magnet',  name:'Магнітний тримач',          price:530, img:IMG.magnet,  l:5.5, w:5.5, t:4.5, anchor:'br'},
 ];
@@ -639,6 +639,7 @@ function tryPack(box, items, order, rnd, mode, plain){
       if(mode>0){ xs.add('A'+(p.x+p.fw)); xs.add('B'+p.x); ys.add('C'+(p.y+p.fd)); ys.add('D'+p.y); }});
     let best=null;
     for(const o of oris){
+      const HMAX = mode===3 ? box.h*1.15 : box.h;
       if(o.t>box.h+EPS) continue;
       const res=v=>{ if(typeof v!=='string') return v; const n=+v.slice(1);
         switch(v[0]){ case 'L': return n-o.fw; case 'T': return n-o.fd; case 'A': return n-0.45*o.fw; case 'B': return n-0.55*o.fw; case 'C': return n-0.45*o.fd; default: return n-0.55*o.fd; } };
@@ -648,8 +649,13 @@ function tryPack(box, items, order, rnd, mode, plain){
         const r={x,y,fw:o.fw,fd:o.fd};
         let base=0; const ov=[];
         for(const p of placed){ const a=overlap(r,p); if(a>0){ ov.push([p,a]); base=Math.max(base,p.top); } }
-        if(base+o.t>box.h+EPS) continue;
-        if(base>0){
+        if(base+o.t>HMAX+EPS) continue;
+        if(base>0 && mode===3){
+          if(NOSTACK3.includes(it.id)) continue;
+          let sup=0, bad=false;
+          for(const [p,a] of ov){ if(p.it.noTop || NOSTACK3.includes(p.it.id)){bad=true;break;} if(Math.abs(p.top-base)<0.6) sup+=a; }
+          if(bad || sup < 0.15*o.fw*o.fd) continue;
+        } else if(base>0){
           if(mode===0 || (mode===1 && !it.filler) || !it.canStack || o.diag) continue;
           let sup=0, bad=false;
           for(const [p,a] of ov){ if(Math.abs(p.top-base)<EPS){ if((!p.it.flatTop && !it.filler) || p.it.noTop){bad=true;break;} sup+=a; } }
@@ -666,6 +672,8 @@ function tryPack(box, items, order, rnd, mode, plain){
   return {placed,fail,box};
 }
 const packCache=new Map();
+// режим 3 («гнучко», як на реальних фото наборів): м'які/пласкі товари можуть частково лягати один на одного
+const NOSTACK3=['holder','pitbull','magnet'];
 // куди «тягнеться» товар: tl — лівий верх, tr — правий верх, bl — лівий низ, br — правий низ
 function anchorScore(it,o,x,y,box){
   const L=x, R=box.w-x-o.fw, T=y, B=box.d-y-o.fd;
@@ -711,7 +719,8 @@ function packMode(box, ids, tries, mode){
 function pack(box, ids, tries=70){
   const T=findTemplate(ids); if(T && box.id===T.box) return templateLayout(T,box);
   for(const m of [0,1]){ const f=packMode(box,ids,tries,m); if(f.fits) return f; }
-  return packMode(box,ids,tries,2);
+  const m2=packMode(box,ids,tries,2); if(m2.fits) return m2;
+  const m3=packMode(box,ids,tries,3); return m3.fits?m3:m2;
 }
 function smallestFit(ids,tries){
   if(!ids.length) return null;
@@ -719,6 +728,8 @@ function smallestFit(ids,tries){
   // 1) без накладання або лише дрібний «заповнювач» на краю; 2) якщо ніде — з накладанням
   for(const id of AUTO_ORDER){ const b=boxById(id); if(packMode(b,ids,tries||70,0).fits || packMode(b,ids,tries||70,1).fits) return id; }
   for(const id of AUTO_ORDER){ if(packMode(boxById(id),ids,tries||70,2).fits) return id; }
+  const area=ids.reduce((s,i)=>{const it=byId(i); return s+(it.l*it.w);},0), maxT=Math.max(...ids.map(i=>byId(i).t));
+  for(const id of AUTO_ORDER){ const b=boxById(id); if(area>2.1*b.w*b.d || maxT>b.h+EPS) continue; if(packMode(b,ids,tries||70,3).fits) return id; }
   return null;
 }
 function why(box, ids){ // пояснення, чому не влазить
