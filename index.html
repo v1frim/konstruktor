@@ -654,17 +654,23 @@ function tryPack(box, items, order, rnd, mode, plain){
       for(const x of cx) for(const y of cy){
         if(x<-EPS||y<-EPS||x+o.fw>box.w*1.03+EPS||y+o.fd>box.d*1.03+EPS) continue;
         const r={x,y,fw:o.fw,fd:o.fd};
-        let base=0; const ov=[]; let tuck=0, zone=0;
+        let base=0; const ov=[]; let tuck=0, zone=0, thin=null, thinBase=0;
+        const myCp = (mode>=3 && it.id==='charger') ? chargerParts({x,y,fw:o.fw,fd:o.fd,o}) : null;
         for(const p of placed){ const a=overlap(r,p); if(a>0){
-          if(mode>=3 && BOTTOM3.includes(it.id) && BOTTOM3.includes(p.it.id) && p.base===0 && a<=0.12*Math.min(o.fw*o.fd,p.fw*p.fd)){ tuck+=a; continue; }
-          if(mode>=3 && p.it.id==='charger' && !BOTTOM3.includes(it.id)){ const cp=chargerParts(p); if(cp && overlap(r,cp.body)===0){ ov.push([p,a,true]); base=Math.max(base,p.base+CHG_LOW_T); continue; } }
+          // штекер зарядного може лягти на край обкладинки/портмоне (корпус — тільки на дні)
+          if(myCp && (p.it.id==='cover'||p.it.id==='wallet') && p.base===0 && overlap(myCp.body,p)===0){
+            const z=coverZones(p); if(overlap(myCp.low,z[0])>0 || overlap(myCp.low,z[2])>0){ base=99; break; }
+            (thin=thin||[]).push([p,overlap(myCp.low,p)]); thinBase=Math.max(thinBase,p.top); zone+=overlap(myCp.low,z[1])/(z[1].fw*z[1].fd); continue; }
+          if(mode>=3 && p.base===0 && ((BOTTOM3.includes(it.id) && BOTTOM3.includes(p.it.id)) || (mode===4 && it.id==='perfume' && !p.it.noTop)) && a<=0.12*Math.min(o.fw*o.fd,p.fw*p.fd)){ tuck+=a; continue; }
+          if(mode>=3 && p.it.id==='charger' && !BOTTOM3.includes(it.id)){ const cp=chargerParts(p); if(cp && overlap(r,cp.body)===0){ ov.push([p,a,true]); base=Math.max(base,p.lowTop||(p.base+CHG_LOW_T)); continue; } }
           ov.push([p,a]); base=Math.max(base,p.top); } }
         if(base+o.t>HMAX+EPS) continue;
+        if(thin){ if(thinBase+CHG_LOW_T>HMAX+EPS) continue; if(thin.some(([p,a])=>((p.covered||0)+a)>VISMAX(p)*p.fw*p.fd)) continue; }
         if(base>0 && mode>=3){
           if(NOSTACK3.includes(it.id) || BOTTOM3.includes(it.id)) continue;
           let sup=0, bad=false;
           for(const [p,a,low] of ov){ if(p.it.noTop || (NOSTACK3.includes(p.it.id) && !BOTTOM3.includes(p.it.id))){bad=true;break;}
-            if(low){ if(Math.abs(p.base+CHG_LOW_T-base)<0.6) sup+=a; continue; }
+            if(low){ if(Math.abs((p.lowTop||(p.base+CHG_LOW_T))-base)<0.6) sup+=a; continue; }
             if(BOTTOM3.includes(p.it.id)){ const cx=p.x+p.fw/2, cy=p.y+p.fd/2;
               const isCov=(p.it.id==='cover'||p.it.id==='wallet');
               if(isCov){ const [lz,pz,mz]=coverZones(p);
@@ -683,12 +689,13 @@ function tryPack(box, items, order, rnd, mode, plain){
           if(bad || sup < (it.filler?0.3:0.6)*o.fw*o.fd) continue;
         }
         let cov=0; if(base>0) for(const [p,a] of ov) cov+=a/(p.fw*p.fd)*((p.it.id==='cover'||p.it.id==='wallet')?0.35:1);
-        const score=(base>0?1e6+cov*2e5:0)+(o.diag?5e5:0)+tuck*2e3+zone*6e5+(plain? y*100+x : anchorScore(it,o,x,y,box)*100+y+x*0.01);
-        if(!best||score<best.score) best={score,x,y,o,base,tuck,zone,ov};
+        const score=(base>0?1e6+cov*2e5:0)+(o.diag?5e5:0)+tuck*2e3+(thin?3e4:0)+zone*6e5+(plain? y*100+x : anchorScore(it,o,x,y,box)*100+y+x*0.01);
+        if(!best||score<best.score) best={score,x,y,o,base,tuck,zone,ov,thin,thinBase};
       }
     }
     if(best && best.base>0) for(const [p,a] of best.ov) p.covered=(p.covered||0)+a;
-    if(best) placed.push({it,x:best.x,y:best.y,fw:best.o.fw,fd:best.o.fd,t:best.o.t,base:best.base,top:best.base+best.o.t,o:best.o,tuck:best.tuck||0,zone:best.zone||0});
+    if(best && best.thin) for(const [p,a] of best.thin) p.covered=(p.covered||0)+a;
+    if(best) placed.push({it,lowTop:best.thin?best.thinBase+CHG_LOW_T:0,x:best.x,y:best.y,fw:best.o.fw,fd:best.o.fd,t:best.o.t,base:best.base,top:best.base+best.o.t,o:best.o,tuck:best.tuck||0,zone:best.zone||0});
     else fail.push(it);
   }
   return {placed,fail,box};
