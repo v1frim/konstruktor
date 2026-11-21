@@ -569,11 +569,14 @@ const LS = {
   set(k,v){try{localStorage.setItem('ap_'+k,JSON.stringify(v));return true}catch(e){return false}}
 };
 
-// Клієнтська версія: на власному сайті / GitHub Pages / Horoshop — без редагування цін і товарів. #admin у посиланні вмикає режим власника.
+// Клієнтська версія: на власному сайті / GitHub Pages / Horoshop — без редагування цін і товарів. #admin=<ключ> у посиланні вмикає режим власника.
 /* Промокоди: 'КОД': {pct: відсоток} або {uah: сума}; необов'язково min — мінімальна сума набору, грн.
    Код вводиться без урахування регістру. */
 const PROMOS = {};
-const CLIENT = !/(^|[#&])admin\b/.test(location.hash); // режим власника лише за посиланням з #admin
+// режим власника — лише за посиланням із секретним ключем: #admin=<ключ> (у коді зберігається тільки хеш ключа)
+const _cyrb53=(s,seed=0)=>{let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0,ch;i<s.length;i++){ch=s.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507);h1^=Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507);h2^=Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0);};
+const OWNER_H=3145573718558306;
+const CLIENT = !(()=>{ const m=location.hash.match(/(?:^#|&)admin=([A-Za-z0-9]+)/); return !!m && _cyrb53(m[1])===OWNER_H; })();
 if(CLIENT) document.documentElement.classList.add('client');
 let catalog, boxes;
 function loadCatalog(){
