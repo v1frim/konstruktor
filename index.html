@@ -672,7 +672,8 @@ function tryPack(box, items, order, rnd, mode, plain){
         } else if(base>0){
           if(mode===0 || (mode===1 && !it.filler) || !it.canStack || o.diag) continue;
           let sup=0, bad=false;
-          for(const [p,a] of ov){ if(Math.abs(p.top-base)<EPS){ if((!p.it.flatTop && !it.filler) || p.it.noTop){bad=true;break;} sup+=a; } }
+          for(const [p,a] of ov){ if((p.it.id==='cover'||p.it.id==='wallet') && coverZones(p).some(z=>overlap(r,z)>0)){bad=true;break;}
+            if(Math.abs(p.top-base)<EPS){ if((!p.it.flatTop && !it.filler) || p.it.noTop){bad=true;break;} sup+=a; } }
           if(bad || sup < (it.filler?0.3:0.6)*o.fw*o.fd) continue;
         }
         let cov=0; if(base>0) for(const [p,a] of ov) cov+=a/(p.fw*p.fd);
