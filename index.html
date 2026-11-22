@@ -1123,7 +1123,7 @@ function renderPresets(){
     const sum=ok.reduce((s,id)=>s+(byId(id).price||0),0); const on=ok.slice().sort().join(',')===cur;
     b.className='chip'+(on?' on':''); b.textContent=`${ok.length} ${plural(ok.length)} · ${fmt(sum)} грн`;
     b.title=on?'Натисни ще раз, щоб очистити коробку':ok.map(id=>byId(id).name).join(' + ');
-    b.onclick=()=>{ if(on){ state.items=[]; } else { state.items=[...ok]; applyAuto(); } render(); };
+    b.onclick=()=>{ if(on){ state.items=[]; } else { state.items=[...ok]; applyAuto(); } render(); if(!on) scrollToSet(); };
     el.appendChild(b);});
 }
 $('#disc').value=state.disc; $('#discType').value=state.discType;
@@ -1251,6 +1251,11 @@ function placePresets(){
 try{ mq.addEventListener('change',placePresets); }catch(e){ mq.addListener(placePresets); }
 placePresets();
 $('#mbGo').onclick=()=>$('#statsPanel').scrollIntoView({behavior:'smooth',block:'start'});
+// після вибору готового набору — плавно до коробки з товарами (під верхньою смужкою з ціною)
+function scrollToSet(){ requestAnimationFrame(()=>{ const el=$('#boxes')&&$('#boxes').offsetHeight?$('#boxes'):$('#stage'); if(!el) return;
+  const bar=$('#mbar'); const br=bar&&getComputedStyle(bar).display!=='none'?bar.getBoundingClientRect():null;
+  const off=(br&&br.top<120?br.bottom:0)+12;
+  window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-off),behavior:'smooth'}); }); }
 function plural(n){const a=n%10,b=n%100; return (a===1&&b!==11)?'товар':(a>=2&&a<=4&&(b<10||b>=20))?'товари':'товарів';}
 function renderMbar(){
   const k=calc(); const n=state.items.length;
