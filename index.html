@@ -838,7 +838,7 @@ function renderShop(){
   nc.innerHTML='<span>+</span>Додати товар<br><small style="font-weight:600">з фото, ціною і розміром</small>';
   nc.onclick=()=>openModal(null);
   el.appendChild(nc);
-  $('#shopCount').textContent=catalog.length+' товарів';
+  { const n=catalog.length, a=n%10, b=n%100; $('#shopCount').textContent=n+' '+((a===1&&b!==11)?'позиція':(a>=2&&a<=4&&(b<10||b>=20))?'позиції':'позицій'); }
 }
 
 /* ================= КОРОБКИ ================= */
