@@ -706,6 +706,7 @@ function tryPack(box, items, order, rnd, mode, plain){
 const packCache=new Map();
 // режим 3 («гнучко», як на реальних фото наборів): м'які/пласкі товари можуть частково лягати один на одного
 const NOSTACK3=['holder','pitbull','magnet'];
+const TALL_ITEMS=['holder','pitbull','magnet']; // їм потрібна велика коробка 18×18×5
 // «нижні» товари: лежать тільки на дні (на них можна частково класти дрібне, збоку); краї сусідніх нижніх можуть трохи заходити один під одного
 const BOTTOM3=['cover','wallet','aromavip','pitbull','holder','proj','magnet','charger'];
 // зони обкладинки/портмоне, які не можна закривати: логотип і номерний знак (частки ширини/висоти фото)
@@ -779,12 +780,17 @@ function pack(box, ids, tries=70){
 function smallestFit(ids,tries){
   if(!ids.length) return null;
   const T=findTemplate(ids); if(T) return T.box;
-  // 1) без накладання або лише дрібний «заповнювач» на краю; 2) якщо ніде — з накладанням
-  for(const id of AUTO_ORDER){ const b=boxById(id); if(packMode(b,ids,tries||70,0).fits || packMode(b,ids,tries||70,1).fits) return id; }
-  for(const id of AUTO_ORDER){ if(packMode(boxById(id),ids,tries||70,2).fits) return id; }
+  // Велика 18×18×5 — для високих товарів (магнітний/бездротовий тримач, Pitbull); для решти — лише якщо інші не вмістили
+  const tall=ids.some(i=>TALL_ITEMS.includes(i));
+  const stages = tall ? [AUTO_ORDER] : [AUTO_ORDER.filter(b=>b!=='big'), ['big']];
   const area=ids.reduce((s,i)=>{const it=byId(i); return s+(it.l*it.w);},0), maxT=Math.max(...ids.map(i=>byId(i).t));
-  for(const id of AUTO_ORDER){ const b=boxById(id); if(area>2.1*b.w*b.d || maxT>b.h+EPS) continue; if(packMode(b,ids,tries||70,3).fits) return id; }
-  for(const id of AUTO_ORDER){ const b=boxById(id); if(area>2.1*b.w*b.d || maxT>b.h+EPS) continue; if(packMode(b,ids,tries||70,4).fits) return id; }
+  for(const order of stages){
+    // 1) без накладання або лише дрібний «заповнювач» на краю; 2) пласке на пласке; 3–4) гнучко — для кожної коробки по черзі (менша коробка важливіша за суворість)
+    for(const id of order){ const b=boxById(id); if(packMode(b,ids,tries||70,0).fits || packMode(b,ids,tries||70,1).fits) return id; }
+    for(const id of order){ if(packMode(boxById(id),ids,tries||70,2).fits) return id; }
+    for(const id of order){ const b=boxById(id); if(area>2.1*b.w*b.d || maxT>b.h+EPS) continue;
+      if(packMode(b,ids,tries||70,3).fits || packMode(b,ids,tries||70,4).fits) return id; }
+  }
   return null;
 }
 function why(box, ids){ // пояснення, чому не влазить
