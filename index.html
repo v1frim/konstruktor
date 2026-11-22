@@ -342,7 +342,7 @@ html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!
 .setTab small{font-weight:700;color:var(--muted)}
 .setTab.on{border-color:var(--gold);background:rgba(245,196,81,.12);color:var(--gold)}.setTab.on small{color:#e9cf8a}
 .setTab .x{border:0;background:transparent;color:#8d8a85;font-size:14px;line-height:1;padding:0 0 0 2px;cursor:pointer}.setTab .x:hover{color:#ff8a80}
-.setTgl{order:98;margin-left:auto;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:5px 10px}
+.boxstrip .boxTgl{margin-left:auto;flex-shrink:0;padding-left:8px}
 .setTab.clr{order:99;color:#ffb3ad;border-color:#5a2a2a;background:rgba(229,50,45,.08)}
 .setTab.addset{border-style:dashed;color:var(--gold);background:transparent}
 .setsum{margin:8px 0 2px;border-top:1px dashed var(--line);padding-top:8px}
@@ -864,6 +864,10 @@ function renderBoxes(){
     const sub = nb ? 'товари без пакування' : [state.items.length===1?(b.price?'+ '+fmt(b.price)+' грн':''):'у подарунок до набору', (!CLIENT&&findTemplate(state.items))?'розкладка як на вашому фото':''].filter(Boolean).join(' · ');
     d.innerHTML=`${nb?'<span class="redbox empty" style="width:40px;height:40px"></span>':boxSvg(b)}<div class="bsinfo"><b>${nb?'Без подарункової коробки':`Подарункова коробка ${b.w}×${b.d}×${b.h} см`}</b>${sub?`<div class="bp">${sub}</div>`:''}</div>
       <label class="bprice">ціна коробки <input type="number" min="0" value="${b.price}"> грн</label>`;
+    { const g=document.createElement('label'); g.className='tgl boxTgl'; g.title=nb?'Додати подарункову коробку':'Прибрати подарункову коробку';
+      g.innerHTML=`<input type="checkbox" ${nb?'':'checked'}><span></span>`;
+      g.querySelector('input').onchange=e=>{ state.noBox=!e.target.checked; render(); toast(state.noBox?'Без подарункової коробки':'З подарунковою коробкою'); };
+      d.appendChild(g); }
     const inp=d.querySelector('.bprice input');
     inp.oninput=()=>{b.price=Math.max(0,+inp.value||0);saveCatalog();renderStats();renderSaved();};
   }
@@ -1024,10 +1028,6 @@ function renderSetTabs(){
     b.onclick=e=>{ if(e.target.classList.contains('x')) return; if(i!==state.cur) switchSet(i); };
     const x=b.querySelector('.x'); if(x) x.onclick=e=>{ e.stopPropagation(); removeSet(i); };
     el.appendChild(b); });
-  { const g=document.createElement('label'); g.className='tgl setTgl'; g.title='Подарункова коробка';
-    g.innerHTML=`<input type="checkbox" ${state.noBox?'':'checked'}><span></span>коробка`;
-    g.querySelector('input').onchange=e=>{ state.noBox=!e.target.checked; render(); toast(state.noBox?'Без подарункової коробки':'З подарунковою коробкою'); };
-    el.appendChild(g); }
   if(state.items.length){ const c=document.createElement('div'); c.className='setTab clr'; c.textContent='🗑 Очистити'; c.title='Прибрати всі товари з цього набору'; c.onclick=()=>{ state.items=[]; render(); toast('Набір очищено'); }; el.appendChild(c); }
   const a=document.createElement('div'); a.className='setTab addset'; a.textContent='+ ще набір'; a.title='Зібрати ще один набір (наприклад, подарунок іншій людині)'; a.onclick=addSet; el.appendChild(a);
 }
