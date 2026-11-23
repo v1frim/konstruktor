@@ -354,6 +354,16 @@ html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!
 #dmText{font-family:inherit;width:100%;height:150px;background:#0f0f12;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;color:#cfcfd6;resize:none}
 .dmbox .mrow .btn{flex:1;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center}
 </style>
+<!-- Google Analytics 4 (той самий ресурс, що й autopodushky.com.ua) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NVXSXPHRJ6"></script>
+<script>
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+(function(){var own=/(?:^#|&)admin=/.test(location.hash);
+gtag('js',new Date());
+gtag('config','G-NVXSXPHRJ6',{cookie_domain:'autopodushky.com.ua',cookie_flags:'SameSite=None;Secure',page_title:'Конструктор наборів',
+  embedded:(window.top!==window.self)?'site_iframe':'direct', traffic_type: own?'internal':undefined});
+})();
+</script>
 </head>
 <body>
 <div class="app">
@@ -1539,6 +1549,36 @@ $('#cartBtn').onclick=()=>{
   toast('Набір додано в кошик');
 };
 applyAuto(); renderPresets(); render(); renderSaved();
+</script>
+<script>
+/* ===== Аналітика подій (GA4) ===== */
+(function(){
+  if(typeof gtag!=='function') return;
+  var own=/(?:^#|&)admin=/.test(location.hash);
+  function T(name,p){ try{ p=p||{}; p.items_in_set=(state&&state.items)?state.items.length:0;
+    var t=document.getElementById('total'); if(t) p.value=parseInt((t.textContent||'').replace(/\D/g,''))||0; p.currency='UAH';
+    if(own) p.traffic_type='internal'; gtag('event',name,p);}catch(e){} }
+  window.trackEv=T;
+  try{ var _t=toggleItem; toggleItem=function(id){ var was=false; try{was=has(id);}catch(e){} _t.apply(this,arguments);
+      var it=null; try{it=byId(id);}catch(e){} T(was?'remove_from_set':'add_to_set',{item_id:id,item_name:it&&it.name}); }; }catch(e){}
+  try{ var _a=addSet; addSet=function(){ _a.apply(this,arguments); T('add_new_set'); }; }catch(e){}
+  document.addEventListener('click',function(e){
+    var el=e.target.closest('button,a,.chip'); if(!el) return;
+    if(el.classList.contains('logoBtn')) return T('select_brand',{brand:el.title});
+    if(el.closest('#presets')&&el.classList.contains('chip')) return T('select_preset',{preset:el.textContent.trim()});
+    switch(el.id){
+      case 'dmBtn': return T('direct_modal_open');
+      case 'dmCopy': return T('direct_copy_message');
+      case 'dmOpen': return T('generate_lead',{method:'instagram_direct'});
+      case 'imgBtn': return T('save_set_image');
+      case 'copyBtn': return T('copy_set_text');
+      case 'saveSet': return T('save_set');
+      case 'cartBtn': return T('add_to_cart_site');
+      case 'promoBtn': return T('apply_promo');
+      case 'moreLogos': return T('more_brands');
+    }
+  },true);
+})();
 </script>
 </body>
 </html>
