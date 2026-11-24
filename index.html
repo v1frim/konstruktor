@@ -364,6 +364,14 @@ gtag('config','G-NVXSXPHRJ6',{cookie_domain:'autopodushky.com.ua',cookie_flags:'
   embedded:(window.top!==window.self)?'site_iframe':'direct', traffic_type: own?'internal':undefined});
 })();
 </script>
+<!-- Meta Pixel -->
+<script>
+if(!/(?:^#|&)admin=/.test(location.hash)){
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','1059971690429989');fbq('track','PageView');
+}
+</script>
+<!-- /Meta Pixel -->
 </head>
 <body>
 <div class="app">
@@ -1557,7 +1565,15 @@ applyAuto(); renderPresets(); render(); renderSaved();
   var own=/(?:^#|&)admin=/.test(location.hash);
   function T(name,p){ try{ p=p||{}; p.items_in_set=(state&&state.items)?state.items.length:0;
     var t=document.getElementById('total'); if(t) p.value=parseInt((t.textContent||'').replace(/\D/g,''))||0; p.currency='UAH';
-    if(own) p.traffic_type='internal'; gtag('event',name,p);}catch(e){} }
+    if(own) p.traffic_type='internal'; gtag('event',name,p);
+    if(!own&&typeof fbq==='function'){ var m={value:p.value,currency:'UAH'};
+      if(name==='add_to_set') fbq('track','AddToCart',Object.assign({content_ids:[String(p.item_id)],content_name:p.item_name,content_type:'product'},m));
+      else if(name==='generate_lead') fbq('track','Lead',m);
+      else if(name==='add_to_cart_site') fbq('track','InitiateCheckout',m);
+      else if(name==='direct_modal_open') fbq('trackCustom','OpenDirect',m);
+      else if(name==='select_brand') fbq('trackCustom','SelectBrand',{brand:p.brand});
+      else if(name==='save_set_image') fbq('trackCustom','SaveSetImage',m); }
+  }catch(e){} }
   window.trackEv=T;
   try{ var _t=toggleItem; toggleItem=function(id){ var was=false; try{was=has(id);}catch(e){} _t.apply(this,arguments);
       var it=null; try{it=byId(id);}catch(e){} T(was?'remove_from_set':'add_to_set',{item_id:id,item_name:it&&it.name}); }; }catch(e){}
