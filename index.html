@@ -1352,7 +1352,8 @@ const EMB = {"cover": {"card": {"cx": 140.0, "cy": 140.5, "ro": 73.8, "ri": 67.4
 const LOGO_ORDER = [0, 1, 4, 2, 3, 6, 8, 5, 9, 10, 7, 14, 11, 13, 12, 29, 15, 16, 21, 17, 20, 24, 22, 33, 18, 27, 19, 36, 39, 45, 46, 47, 23, 30, 31, 37, 38, 44, 26, 34, 48, 35, 40, 43, 28, 32, 42, 41, 25];
 function renderLogos(){
   const row=$('#logoRow'); row.innerHTML='';
-  LOGO_ORDER.map(i=>[LOGOS[i],i]).forEach(([[n,src],i])=>{ const b=document.createElement('button'); b.className='logoBtn'+(state.logo===i?' on':''); b.title=n;
+  let ord=LOGO_ORDER.slice(); const sp=state.logo==null?-1:ord.indexOf(state.logo); if(sp>=10){ ord.splice(sp,1); ord.unshift(state.logo); } /* обрана марка завжди видна у згорнутому списку */
+  ord.map(i=>[LOGOS[i],i]).forEach(([[n,src],i])=>{ const b=document.createElement('button'); b.className='logoBtn'+(state.logo===i?' on':''); b.title=n;
     b.innerHTML=`<img src="${src}" alt="${n}" loading="lazy">`;
     b.onclick=()=>{ const inM=$('#pmodal').classList.contains('on'); if(!inM&&$('#logoHome').classList.contains('open')){ $('#logoHome').classList.remove('open'); setTimeout(updMoreLogos,0); } state.logo=(state.logo===i&&!inM)?null:i; LS.set('state3',state); renderLogos(); applyPlate(); pmAutoClose(); };
     row.appendChild(b); });
