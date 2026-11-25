@@ -353,6 +353,13 @@ html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!
 .dmSteps{margin:6px 0 10px 18px;padding:0;font-size:14px;line-height:1.5;color:#e8e6e3}
 #dmText{font-family:inherit;width:100%;height:150px;background:#0f0f12;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;color:#cfcfd6;resize:none}
 .dmbox .mrow .btn{flex:1;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center}
+.miniStage{display:none}
+@media (max-width:1100px){.miniStage.on{display:flex;align-items:center;gap:14px;margin:12px 0 4px;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--panel2);cursor:pointer}}
+.miniStage .mWrap{flex:0 0 52%;position:relative;overflow:hidden;border-radius:8px}
+.miniStage .mWrap>*{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;margin:0!important}
+.miniStage .mHint{font-size:14px;color:var(--muted);line-height:1.4}
+.miniStage .mHint b{color:var(--text);display:block;margin-bottom:4px}
+.miniStage .mHint u{color:var(--gold);text-decoration:none;font-weight:700}
 </style>
 <!-- Google Analytics 4 (той самий ресурс, що й autopodushky.com.ua) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-NVXSXPHRJ6"></script>
@@ -442,6 +449,7 @@ fbq('init','1848941499786040');fbq('track','PageView');
         <div class="big"><span id="total">0</span><small>грн</small></div>
         <div class="old" id="oldTotal"></div>
       </div>
+      <div class="miniStage" id="miniStage"><div class="mWrap"></div><div class="mHint"><b>Так виглядатиме ваш набір</b><u>Переглянути ↑</u></div></div>
       <div class="stat"><span class="k">Предметів</span><span class="v" id="sCount">0</span></div>
       <div class="stat"><span class="k">Товари</span><span class="v" id="sGoods">0 грн</span></div>
       <div class="stat"><span class="k">Коробка</span><span class="v" id="sBox">—</span></div>
@@ -1558,6 +1566,28 @@ $('#cartBtn').onclick=()=>{
   toast('Набір додано в кошик');
 };
 applyAuto(); renderPresets(); render(); renderSaved();
+</script>
+<script>
+/* Мініатюра набору в «Характеристиках» (мобільні), щоб не гортати вгору */
+(function(){
+  function updMini(){ try{
+    const m=document.getElementById('miniStage'); if(!m) return;
+    const src=document.querySelector('#stage .box')||document.querySelector('#stage .flatlay');
+    const items=(state&&state.items)?state.items.length:0;
+    if(!src||!items||!src.offsetWidth){ m.classList.remove('on'); return; }
+    const w=m.querySelector('.mWrap'); w.innerHTML='';
+    const c=src.cloneNode(true); c.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));
+    const ow=src.offsetWidth, oh=src.offsetHeight;
+    c.style.width=ow+'px'; c.style.height=oh+'px'; c.style.boxShadow='none';
+    w.appendChild(c); m.classList.add('on');
+    const sc=w.clientWidth/ow; c.style.transform='scale('+sc+')'; w.style.height=Math.round(oh*sc)+'px';
+  }catch(e){} }
+  window.updMini=updMini;
+  try{ const _rs=renderStage; renderStage=function(){ const r=_rs.apply(this,arguments); requestAnimationFrame(()=>requestAnimationFrame(updMini)); return r; }; }catch(e){}
+  const m=document.getElementById('miniStage'); if(m) m.onclick=()=>{ const s=document.getElementById('stageCol'); if(s) s.scrollIntoView({behavior:'smooth',block:'start'}); };
+  let t; window.addEventListener('resize',()=>{ clearTimeout(t); t=setTimeout(updMini,200); });
+  setTimeout(updMini,300);
+})();
 </script>
 <script>
 /* ===== Аналітика подій (GA4) ===== */
