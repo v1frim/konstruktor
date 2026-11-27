@@ -861,7 +861,7 @@ function renderShop(){
     const lgo=!!(state.noLogo && typeof LOGO_ONLY!=='undefined' && LOGO_ONLY.includes(it.id) && !on);
     const c=document.createElement('div'); c.className='card'+(on?' in':'')+(ok?'':' dim')+(lgo?' lgo':'');
     c.innerHTML=`
-      ${on?`<span class="badge">✓ у наборі</span>`:''}${lgo?`<span class="lgOnly">Лише з логотипом марки</span>`:''}
+      ${on?`<span class="badge">✓ у наборі</span>`:''}${lgo?`<span class="lgOnly">Лише з логотипом авто</span>`:''}
       <button class="edit" title="Редагувати">✎</button>
       <div class="ph" draggable="true"><img src="${it.img}" alt="" class="${it.photoCard?'fill':''}"></div>
       <div class="nm">${esc(it.name)}</div>
@@ -1054,7 +1054,7 @@ function animateTotal(to){
 
 /* ================= ДІЇ ================= */
 function toggleItem(id){
-  if(!has(id) && state.noLogo && LOGO_ONLY.includes(id)){ toast(byId(id).name+' буває лише з логотипом марки. Оберіть марку авто, щоб додати.'); try{ const h=$('#logoHome'); h.classList.add('open'); updMoreLogos(); h.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} return; }
+  if(!has(id) && state.noLogo && LOGO_ONLY.includes(id)){ toast(byId(id).name+' буває лише з логотипом авто. Оберіть марку авто, щоб додати.'); try{ const h=$('#logoHome'); h.classList.add('open'); updMoreLogos(); h.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} return; }
   if(has(id)){ state.items=state.items.filter(x=>x!==id); try{ if(!needPerf()) delete _asked.perf; if(!needPlate()) delete _asked.plate; if(!needLogo()) delete _asked.logo; }catch(e){} applyAuto(); render(); return; }
   const ids=[...state.items,id], it=byId(id);
   const f=smallestFit(ids);
