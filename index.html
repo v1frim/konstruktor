@@ -330,6 +330,7 @@ html.client .price-in{pointer-events:none;border-color:transparent;background:tr
 .promo{display:flex;gap:6px;margin:10px 0 4px}
 .promo input{flex:1;min-width:0;background:#0f0f12;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:14px;font-weight:700;text-transform:uppercase;color:#fff}
 .promo button{border:1px solid var(--line);border-radius:10px;background:var(--panel2);padding:0 14px;font-weight:800;font-size:13px;color:#fff}
+.promoMsg .pErr{color:#ffb3ad}
 .promoMsg{font-size:12.5px;font-weight:700;min-height:16px;margin-bottom:6px}.promoMsg.ok{color:#5fd393}.promoMsg.bad{color:#ffb3ad}
 .btn.dm{background:linear-gradient(135deg,#833ab4,#e1306c 55%,#f77737)}
 .line.promoLine .n{color:#5fd393}.line.promoLine .s{color:#5fd393}
@@ -465,7 +466,7 @@ fbq('init','1848941499786040');fbq('track','PageView');
         <input type="number" id="disc" min="0" value="0">
         <select id="discType"><option value="pct">%</option><option value="uah">грн</option></select>
       </div>
-      <div class="promo" id="promoRow"><input id="promoIn" placeholder="Промокод" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="promoBtn">Застосувати</button></div>
+      <div class="promo" id="promoRow"><input id="promoIn" placeholder="Є промокод акції?" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="promoBtn">Застосувати</button></div>
       <div class="promoMsg" id="promoMsg"></div>
       <div class="lines" id="lines"></div>
       <button class="btn dm" id="dmBtn">💬 Замовити в Direct</button>
@@ -602,7 +603,19 @@ const LS = {
 // Клієнтська версія: на власному сайті / GitHub Pages / Horoshop — без редагування цін і товарів. #admin=<ключ> у посиланні вмикає режим власника.
 /* Промокоди: 'КОД': {pct: відсоток} або {uah: сума}; необов'язково min — мінімальна сума набору, грн.
    Код вводиться без урахування регістру. */
+/* Промокоди. day — діє лише в цей день за київським часом (00:00–23:59). base — базова знижка конструктора, застосовується автоматично */
+const PROMO_BASE='NABIR5';
+const PROMOS_ALL = {
+  NABIR5:  {pct:5,  base:true},
+  BLACK15: {pct:15, day:'2026-11-27'},
+  AUTO10:  {pct:10, day:'2026-11-28'},
+  GIFT8:   {pct:8,  day:'2026-11-29'},
+  CYBER7:  {pct:7,  day:'2026-11-30'},
+};
 const PROMOS = {};
+function kyivDay(){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Kyiv',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }catch(e){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Kiev',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }catch(_){ const d=new Date(Date.now()+2*3600e3); return d.toISOString().slice(0,10); } } }
+function refreshPromos(){ const t=kyivDay(); for(const k in PROMOS) delete PROMOS[k]; for(const [k,v] of Object.entries(PROMOS_ALL)) if(!v.day||v.day===t) PROMOS[k]=v; }
+refreshPromos();
 // режим власника — лише за посиланням із секретним ключем: #admin=<ключ> (у коді зберігається тільки хеш ключа)
 const _cyrb53=(s,seed=0)=>{let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0,ch;i<s.length;i++){ch=s.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507);h1^=Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507);h2^=Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0);};
 const OWNER_H=3145573718558306;
@@ -990,7 +1003,7 @@ function calc(){
   const dv=CLIENT?0:(+state.disc||0);
   const mdisc= state.discType==='pct'? sub*Math.min(dv,100)/100 : Math.min(dv,sub);
   const pr=state.promo&&PROMOS[state.promo]; let pdisc=0;
-  if(pr && !(pr.min&&sub<pr.min)) pdisc= pr.pct? sub*Math.min(pr.pct,100)/100 : Math.min(pr.uah||0,sub);
+  if(pr && !(pr.min&&sub<pr.min)) pdisc= Math.round(pr.pct? sub*Math.min(pr.pct,100)/100 : Math.min(pr.uah||0,sub));
   const disc=Math.min(sub,mdisc+pdisc);
   return {box,goods,boxPrice,setSub:c.setSub,per,multi:per.filter(r=>r.n).length>1,sub,disc,pdisc,pr,total:Math.max(0,sub-disc), missing:c.missing};
 }
@@ -1022,7 +1035,7 @@ function renderStats(){
     L.appendChild(row);
   });
   if(k.pdisc>0){ const row=document.createElement('div'); row.className='line promoLine';
-    row.innerHTML=`<div class="n">Промокод ${esc(state.promo)}</div><div class="s">−${fmt(k.pdisc)}</div>`; L.appendChild(row); }
+    row.innerHTML=`<div class="n">${state.promo===PROMO_BASE?'Знижка конструктора −'+PROMOS_ALL[PROMO_BASE].pct+'%':'Промокод '+esc(state.promo)}</div><div class="s">−${fmt(k.pdisc)}</div>`; L.appendChild(row); }
   if(state.sets.length>1){ const box=document.createElement('div'); box.className='setsum'; box.innerHTML='<div class="sh">Усі набори</div>';
     k.per.forEach((r,i)=>{ const row=document.createElement('div'); row.className='sr'+(i===state.cur?' on':'');
       row.innerHTML=`<span>Набір ${i+1} · ${r.n} ${plural(r.n)}</span><b>${fmt(r.setSub)} грн</b>`; row.onclick=()=>switchSet(i); box.appendChild(row); });
@@ -1117,23 +1130,30 @@ function closePers(){
 $('#pmOk').onclick=closePers; $('#pmX').onclick=closePers;
 $('#pmodal').onclick=e=>{ if(e.target.id==='pmodal') closePers(); };
 /* ===== Промокод ===== */
+let _promoErr='';
+function ddmm(d){ return d.slice(8,10)+'.'+d.slice(5,7); }
 function promoMsg(){
-  const m=$('#promoMsg'); const k=calc();
-  if(!state.promo){ m.textContent=''; m.className='promoMsg'; return; }
-  const pr=PROMOS[state.promo];
-  if(!pr){ m.textContent='Промокод не знайдено'; m.className='promoMsg bad'; return; }
+  const m=$('#promoMsg'); const k=calc(); const pr=PROMOS[state.promo];
+  if(!pr){ m.textContent=''; m.className='promoMsg'; return; }
+  const pct=pr.pct?pr.pct+'%':fmt(pr.uah)+' грн';
   if(pr.min && k.sub<pr.min){ m.textContent=`Промокод діє для наборів від ${fmt(pr.min)} грн`; m.className='promoMsg bad'; return; }
-  m.textContent=`✓ Промокод застосовано: −${pr.pct?pr.pct+'%':fmt(pr.uah)+' грн'}`; m.className='promoMsg ok';
+  if(pr.base){ m.innerHTML=(_promoErr?`<span class="pErr">${esc(_promoErr)}</span><br>`:'')+`✓ Знижка −${pct} за замовлення через конструктор — уже врахована`; m.className='promoMsg ok'; return; }
+  m.textContent=`✓ Промокод ${state.promo} застосовано: −${pct} (замість базових −${PROMOS_ALL[PROMO_BASE].pct}%)`; m.className='promoMsg ok';
 }
 function applyPromo(){
+  refreshPromos(); _promoErr='';
   const code=$('#promoIn').value.trim().toUpperCase().replace(/\s+/g,'');
-  if(!code){ state.promo=null; promoMsg(); renderStats(); return; }
-  state.promo = code; renderStats(); promoMsg();
-  if(!PROMOS[code]) state.promo=null, LS.set('state3',state);
+  if(code && code!==PROMO_BASE && PROMOS[code]) state.promo=code;
+  else { if(code && code!==PROMO_BASE){ const a=PROMOS_ALL[code], t=kyivDay();
+      _promoErr = !a ? `Промокод «${code}» не знайдено.` : a.day<t ? `Промокод ${code} діяв лише ${ddmm(a.day)}.` : `Промокод ${code} діятиме ${ddmm(a.day)}.`; }
+    state.promo=PROMO_BASE; if(!code||code===PROMO_BASE) $('#promoIn').value=''; }
+  LS.set('state3',state); renderStats(); promoMsg();
 }
 $('#promoBtn').onclick=applyPromo;
 $('#promoIn').addEventListener('keydown',e=>{ if(e.key==='Enter') applyPromo(); });
-if(state.promo && PROMOS[state.promo]) { $('#promoIn').value=state.promo; setTimeout(promoMsg,0); } else state.promo=null;
+if(!(state.promo && PROMOS[state.promo])) state.promo=PROMO_BASE; if(state.promo!==PROMO_BASE) $('#promoIn').value=state.promo; setTimeout(()=>{ try{ renderStats(); }catch(e){} promoMsg(); },0);
+/* о 00:00 за Києвом денний код вимикається — повертаємо базову знижку */
+setInterval(()=>{ const was=state.promo; refreshPromos(); if(!PROMOS[state.promo]){ state.promo=PROMO_BASE; $('#promoIn').value=''; } if(was!==state.promo){ renderStats(); promoMsg(); } },60000);
 /* поле промокоду клієнтам показуємо лише коли є хоч один код */
 if(CLIENT && !Object.keys(PROMOS).length){ $('#promoRow').style.display='none'; $('#promoMsg').style.display='none'; }
 /* ===== Замовити в Direct ===== */
@@ -1194,7 +1214,7 @@ function summaryText(){
     t+=`Вітаю! Хочу замовити ${idx.length} ${idx.length<5?'набори':'наборів'} 🎁\n\n`;
     idx.forEach((i,n)=>{ const {L,c}=setSummary(i); t+=`Набір ${n+1}:\n`+L.join('\n')+`\nЦіна набору: ${fmt(c.setSub)} грн\n\n`; });
   }
-  if(k.pdisc>0) t+=`Промокод ${state.promo}: −${fmt(k.pdisc)} грн\n`;
+  if(k.pdisc>0) t+= state.promo===PROMO_BASE ? `Знижка через конструктор (−${PROMOS_ALL[PROMO_BASE].pct}%): −${fmt(k.pdisc)} грн\n` : `Промокод ${state.promo} (−${PROMOS[state.promo]?PROMOS[state.promo].pct:''}%): −${fmt(k.pdisc)} грн\n`;
   if(k.disc>0) t+=`Без знижки: ${fmt(k.sub)} грн\n`;
   if(idx.length>1) t+=`Разом за ${idx.length} ${idx.length<5?'набори':'наборів'}: ${fmt(k.total)} грн`;
   else t+= ((k.per[idx[0]??state.cur]||{}).n>1?'Ціна набору: ':'Разом: ')+`${fmt(k.total)} грн`;
@@ -1563,7 +1583,7 @@ async function setImage(){
   const lines=state.items.map(id=>{const it=byId(id); return [it.name, it.price==null?'—':fmt(it.price)+' грн'];});
   if(state.items.some(id=>EMB[id]) && (state.logo!=null||state.noLogo)) lines.push(['Логотип', state.noLogo?'без логотипу':LOGOS[state.logo][0]]);
   if(state.plateText && state.items.some(id=>PLATE_REG[id])) lines.push(['Номер', state.plateText]);
-  if(k.pdisc>0 && !k.multi) lines.push(['Промокод '+state.promo, '−'+fmt(k.pdisc)+' грн']);
+  if(k.pdisc>0 && !k.multi) lines.push([state.promo===PROMO_BASE?'Знижка конструктора':'Промокод '+state.promo, '−'+fmt(k.pdisc)+' грн']);
   const lh=Math.min(40,(H-y-150)/Math.max(1,lines.length));
   g.font=`600 ${Math.min(28,lh*0.72)}px Manrope, sans-serif`;
   for(const [a,b] of lines){ g.fillStyle='#e8e6e3'; g.fillText('• '+a,60,y); g.fillStyle='#f5c451'; g.textAlign='right'; g.fillText(b,W-60,y); g.textAlign='left'; y+=lh; }
