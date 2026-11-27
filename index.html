@@ -1132,9 +1132,12 @@ if(state.promo && PROMOS[state.promo]) { $('#promoIn').value=state.promo; setTim
 if(CLIENT && !Object.keys(PROMOS).length){ $('#promoRow').style.display='none'; $('#promoMsg').style.display='none'; }
 /* ===== Замовити в Direct ===== */
 const IG_USER='autopodushky';
+function genOC(){ const a='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let c=''; for(let i=0;i<4;i++) c+=a[Math.floor(Math.random()*a.length)]; return c; }
+window._oc=null;
 $('#dmBtn').onclick=async()=>{
   if(!state.sets.some((s,i)=>(i===state.cur?state.items:s.items).length)){toast('Спершу додай товари');return;}
-  const t=summaryText(); let ok=false;
+  if(!window._oc) window._oc=genOC();
+  const t=summaryText()+`\n\nКод замовлення: #${window._oc}`; let ok=false;
   try{ await navigator.clipboard.writeText(t); ok=true; }catch(e){}
   if(!ok){ const ta=$('#copybox'); ta.value=t; ta.style.display='block'; ta.select(); try{ ok=document.execCommand('copy'); }catch(e){} }
   $('#dmText').value=t; $('#copybox').style.display='none';
@@ -1608,6 +1611,13 @@ applyAuto(); renderPresets(); render(); renderSaved();
       else if(name==='save_set_image') fbq('trackCustom','SaveSetImage',m); }
   }catch(e){} }
   window.trackEv=T;
+  function ordP(){ const p={order_code:window._oc||''}; try{
+      const names=[]; (state.sets||[]).forEach((st,i)=>{ const ids=(i===state.cur?state.items:st.items)||[]; ids.forEach(id=>{ const it=byId(id); if(it) names.push(it.name); }); });
+      if(!names.length&&state.items) state.items.forEach(id=>{ const it=byId(id); if(it) names.push(it.name); });
+      p.set_items=names.join('; ').slice(0,100);
+      if(state.logo!=null) p.brand=LOGOS[state.logo][0];
+      p.sets_count=(state.sets||[]).filter((st,i)=>((i===state.cur?state.items:st.items)||[]).length).length||1;
+    }catch(e){} return p; }
   try{ var _t=toggleItem; toggleItem=function(id){ var was=false; try{was=has(id);}catch(e){} _t.apply(this,arguments);
       var it=null; try{it=byId(id);}catch(e){} T(was?'remove_from_set':'add_to_set',{item_id:id,item_name:it&&it.name}); }; }catch(e){}
   try{ var _a=addSet; addSet=function(){ _a.apply(this,arguments); T('add_new_set'); }; }catch(e){}
@@ -1616,9 +1626,9 @@ applyAuto(); renderPresets(); render(); renderSaved();
     if(el.classList.contains('logoBtn')) return T('select_brand',{brand:el.title});
     if(el.closest('#presets')&&el.classList.contains('chip')) return T('select_preset',{preset:el.textContent.trim()});
     switch(el.id){
-      case 'dmBtn': return T('direct_modal_open');
-      case 'dmCopy': return T('direct_copy_message');
-      case 'dmOpen': return T('generate_lead',{method:'instagram_direct'});
+      case 'dmBtn': try{ window._oc=genOC(); }catch(e){} return T('direct_modal_open',ordP());
+      case 'dmCopy': return T('direct_copy_message',ordP());
+      case 'dmOpen': return T('generate_lead',Object.assign({method:'instagram_direct'},ordP()));
       case 'imgBtn': return T('save_set_image');
       case 'copyBtn': return T('copy_set_text');
       case 'saveSet': return T('save_set');
