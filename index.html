@@ -369,8 +369,12 @@ html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!
 <!-- Google Analytics 4 (той самий ресурс, що й autopodushky.com.ua) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-NVXSXPHRJ6"></script>
 <script>
+/* «Мій пристрій»: відкрити один раз nabir.autopodushky.com.ua/#me — далі цей браузер не рахується в статистиці (GA, піксель). #me-off — скасувати */
+window.AP_OWN=(function(){ try{ if(/(?:^#|&)me-off\b/.test(location.hash)) localStorage.removeItem('ap_me'); else if(/(?:^#|&)me\b/.test(location.hash)) localStorage.setItem('ap_me','1'); return /(?:^#|&)admin=/.test(location.hash) || localStorage.getItem('ap_me')==='1'; }catch(e){ return /(?:^#|&)admin=/.test(location.hash); } })();
+</script>
+<script>
 window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
-(function(){var own=/(?:^#|&)admin=/.test(location.hash);
+(function(){var own=!!window.AP_OWN;
 gtag('js',new Date());
 gtag('config','G-NVXSXPHRJ6',{cookie_domain:'autopodushky.com.ua',cookie_flags:'SameSite=None;Secure',page_title:'Конструктор наборів',
   embedded:(window.top!==window.self)?'site_iframe':'direct', traffic_type: own?'internal':undefined});
@@ -378,7 +382,7 @@ gtag('config','G-NVXSXPHRJ6',{cookie_domain:'autopodushky.com.ua',cookie_flags:'
 </script>
 <!-- Meta Pixel -->
 <script>
-if(!/(?:^#|&)admin=/.test(location.hash)){
+if(!window.AP_OWN){
 !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
 fbq('init','1848941499786040');fbq('track','PageView');
 }
@@ -1645,7 +1649,7 @@ applyAuto(); renderPresets(); render(); renderSaved();
 /* ===== Аналітика подій (GA4) ===== */
 (function(){
   if(typeof gtag!=='function') return;
-  var own=/(?:^#|&)admin=/.test(location.hash);
+  var own=!!window.AP_OWN;
   function T(name,p){ try{ p=p||{}; p.items_in_set=(state&&state.items)?state.items.length:0;
     var t=document.getElementById('total'); if(t) p.value=parseInt((t.textContent||'').replace(/\D/g,''))||0; p.currency='UAH';
     if(own) p.traffic_type='internal'; gtag('event',name,p);
