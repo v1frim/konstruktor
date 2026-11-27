@@ -1030,12 +1030,12 @@ function renderStats(){
   state.items.forEach(id=>{
     const it=byId(id); const row=document.createElement('div'); row.className='line';
     row.innerHTML=`<img src="${it.img}" alt=""><div class="n">${esc(it.name)}</div>
-      <div class="s">${it.price==null?'—':fmt(it.price)}</div><button class="rm" title="Прибрати">✕</button>`;
+      <div class="s">${it.price==null?'—':fmt(it.price)+' грн'}</div><button class="rm" title="Прибрати">✕</button>`;
     row.querySelector('.rm').onclick=()=>toggleItem(id);
     L.appendChild(row);
   });
   if(k.pdisc>0){ const row=document.createElement('div'); row.className='line promoLine';
-    row.innerHTML=`<div class="n">${state.promo===PROMO_BASE?'Знижка конструктора −'+PROMOS_ALL[PROMO_BASE].pct+'%':'Промокод '+esc(state.promo)}</div><div class="s">−${fmt(k.pdisc)}</div>`; L.appendChild(row); }
+    row.innerHTML=`<div class="n">${state.promo===PROMO_BASE?'Знижка конструктора −'+PROMOS_ALL[PROMO_BASE].pct+'%':'Промокод '+esc(state.promo)}</div><div class="s">−${fmt(k.pdisc)} грн</div>`; L.appendChild(row); }
   if(state.sets.length>1){ const box=document.createElement('div'); box.className='setsum'; box.innerHTML='<div class="sh">Усі набори</div>';
     k.per.forEach((r,i)=>{ const row=document.createElement('div'); row.className='sr'+(i===state.cur?' on':'');
       row.innerHTML=`<span>Набір ${i+1} · ${r.n} ${plural(r.n)}</span><b>${fmt(r.setSub)} грн</b>`; row.onclick=()=>switchSet(i); box.appendChild(row); });
