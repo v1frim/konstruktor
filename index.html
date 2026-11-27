@@ -1128,6 +1128,8 @@ function applyPromo(){
 $('#promoBtn').onclick=applyPromo;
 $('#promoIn').addEventListener('keydown',e=>{ if(e.key==='Enter') applyPromo(); });
 if(state.promo && PROMOS[state.promo]) { $('#promoIn').value=state.promo; setTimeout(promoMsg,0); } else state.promo=null;
+/* поле промокоду клієнтам показуємо лише коли є хоч один код */
+if(CLIENT && !Object.keys(PROMOS).length){ $('#promoRow').style.display='none'; $('#promoMsg').style.display='none'; }
 /* ===== Замовити в Direct ===== */
 const IG_USER='autopodushky';
 $('#dmBtn').onclick=async()=>{
