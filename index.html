@@ -286,6 +286,8 @@ canvas.uaTag:before{display:none}
 
 .logoName{color:var(--gold);font-weight:800;margin-left:4px}
 .logoRow{display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,44px);grid-auto-columns:44px;gap:6px;overflow-x:auto;padding:2px 2px 8px;margin-bottom:12px;scrollbar-width:thin}
+.card .lgOnly{position:absolute;left:8px;right:8px;top:8px;z-index:3;background:rgba(20,20,24,.88);border:1px solid #5a5a66;color:#e8e8ee;border-radius:8px;padding:4px 6px;font:700 11px/1.2 Inter,system-ui,sans-serif;text-align:center}
+.card.lgo .ph img{opacity:.45;filter:grayscale(.6)}
 .logoBtn.nolg{display:flex;align-items:center;justify-content:center;background:#1d1d22;border:2px dashed #5a5a66;color:#c9c9d2;font:800 9.5px/1.05 Inter,system-ui,sans-serif;text-align:center;letter-spacing:-.2px}
 .logoBtn.nolg.on{border-style:solid}
 .logoBtn{width:44px;height:44px;border-radius:50%;padding:0;border:2px solid transparent;background:#000;overflow:hidden;cursor:pointer}
@@ -843,9 +845,10 @@ function renderShop(){
   catalog.slice().sort((a,b)=>rank(a.id)-rank(b.id)).forEach(it=>{
     const on=has(it.id);
     const ok=on||wouldFit(it.id);
-    const c=document.createElement('div'); c.className='card'+(on?' in':'')+(ok?'':' dim');
+    const lgo=!!(state.noLogo && typeof LOGO_ONLY!=='undefined' && LOGO_ONLY.includes(it.id) && !on);
+    const c=document.createElement('div'); c.className='card'+(on?' in':'')+(ok?'':' dim')+(lgo?' lgo':'');
     c.innerHTML=`
-      ${on?`<span class="badge">✓ у наборі</span>`:''}
+      ${on?`<span class="badge">✓ у наборі</span>`:''}${lgo?`<span class="lgOnly">Лише з логотипом марки</span>`:''}
       <button class="edit" title="Редагувати">✎</button>
       <div class="ph" draggable="true"><img src="${it.img}" alt="" class="${it.photoCard?'fill':''}"></div>
       <div class="nm">${esc(it.name)}</div>
@@ -1038,6 +1041,7 @@ function animateTotal(to){
 
 /* ================= ДІЇ ================= */
 function toggleItem(id){
+  if(!has(id) && state.noLogo && LOGO_ONLY.includes(id)){ toast(byId(id).name+' буває лише з логотипом марки. Оберіть марку авто, щоб додати.'); try{ const h=$('#logoHome'); h.classList.add('open'); updMoreLogos(); h.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} return; }
   if(has(id)){ state.items=state.items.filter(x=>x!==id); try{ if(!needPerf()) delete _asked.perf; if(!needPlate()) delete _asked.plate; if(!needLogo()) delete _asked.logo; }catch(e){} applyAuto(); render(); return; }
   const ids=[...state.items,id], it=byId(id);
   const f=smallestFit(ids);
@@ -1368,13 +1372,16 @@ const LOGO_ORDER = [0, 1, 4, 2, 3, 6, 8, 5, 9, 10, 7, 14, 11, 13, 12, 29, 15, 16
 function renderLogos(){
   const row=$('#logoRow'); row.innerHTML='';
   let ord=LOGO_ORDER.slice(); const sp=state.logo==null?-1:ord.indexOf(state.logo); if(sp>=10){ ord.splice(sp,1); ord.unshift(state.logo); } /* обрана марка завжди видна у згорнутому списку */
-  { const nb=document.createElement('button'); nb.className='logoBtn nolg'+(state.noLogo?' on':''); nb.title='Без логотипу'; nb.innerHTML='Без<br>лого';
-    nb.onclick=()=>{ const inM=$('#pmodal').classList.contains('on'); if(!inM&&$('#logoHome').classList.contains('open')){ $('#logoHome').classList.remove('open'); setTimeout(updMoreLogos,0); } state.noLogo=!(state.noLogo&&!inM); state.logo=null; LS.set('state3',state); renderLogos(); applyPlate(); pmAutoClose(); };
-    row.appendChild(nb); }
   ord.map(i=>[LOGOS[i],i]).forEach(([[n,src],i])=>{ const b=document.createElement('button'); b.className='logoBtn'+(state.logo===i?' on':''); b.title=n;
     b.innerHTML=`<img src="${src}" alt="${n}" loading="lazy">`;
     b.onclick=()=>{ const inM=$('#pmodal').classList.contains('on'); if(!inM&&$('#logoHome').classList.contains('open')){ $('#logoHome').classList.remove('open'); setTimeout(updMoreLogos,0); } state.logo=(state.logo===i&&!inM)?null:i; state.noLogo=false; LS.set('state3',state); renderLogos(); applyPlate(); pmAutoClose(); };
     row.appendChild(b); });
+  { const nb=document.createElement('button'); nb.className='logoBtn nolg'+(state.noLogo?' on':''); nb.title='Без логотипу'; nb.innerHTML='Без<br>лого';
+    nb.onclick=()=>{ const inM=$('#pmodal').classList.contains('on');
+      if(!state.noLogo){ const bad=state.items.filter(id=>LOGO_ONLY.includes(id)); if(bad.length){ toast((bad.length>1?'Ці товари бувають':'Цей товар буває')+' лише з логотипом: '+bad.map(id=>byId(id).name).join(', ')+'. Приберіть '+(bad.length>1?'їх':'його')+' або оберіть марку.'); return; } }
+      if(!inM&&$('#logoHome').classList.contains('open')){ $('#logoHome').classList.remove('open'); setTimeout(updMoreLogos,0); }
+      state.noLogo=!(state.noLogo&&!inM); state.logo=null; LS.set('state3',state); renderLogos(); applyPlate(); pmAutoClose(); };
+    if(state.noLogo) row.insertBefore(nb,row.firstChild); else row.appendChild(nb); }
   $('#logoName').textContent= state.noLogo ? 'без логотипу' : state.logo==null ? 'не обрано' : LOGOS[state.logo][0];
   updMoreLogos();
 }
@@ -1441,6 +1448,8 @@ async function plugBoxReal(src){
   for(const [cx,cy,d] of [[71,50,62],[71,158,66]]){ g.drawImage(em,(cx-d/2)*k,(cy-d/2)*k,d*k,d*k); }
   return cv.toDataURL('image/png');
 }
+const LOGO_ONLY=['cover','wallet','aromavip','proj'];
+const NL={vip:['img/c/nl_vip_card.webp','img/c/nl_vip_box.webp',148,360], key:['img/c/nl_key_card.webp','img/c/nl_key_box.webp',124,360], brush:['img/c/nl_brush_card.webp','img/c/nl_brush_box.webp',189,360], plugs:['img/c/nl_plugs_card.webp']};
 const NOLOGO_PX=(()=>{ const c=document.createElement('canvas'); c.width=c.height=2; return c.toDataURL('image/png'); })();
 let _keyBlank=null;
 async function keyBlank(){ if(_keyBlank) return _keyBlank; const im=await loadImg(KEYIMG['r_Lada'][0]); if(!im) return KEYIMG['r_Lada'][0];
@@ -1457,6 +1466,8 @@ async function applyPlate(){
   for(const id of [...new Set([...Object.keys(PLATE_REG),...Object.keys(EMB)])]){
     const it=byId(id); if(!it) continue;
     const emb=EMB[id], pr=PLATE_REG[id]||{}, hasPlate=!!PLATE_REG[id];
+    if(state.noLogo && NL[id] && NL[id][1]){ if(it.nw0==null){it.nw0=it.nw; it.nh0=it.nh;} it.img=NL[id][0]; it.boxImg=NL[id][1]; it.nw=NL[id][2]; it.nh=NL[id][3]; continue; }
+    if(!state.noLogo && it.nw0!=null && (id==='vip'||id==='brush')){ it.nw=it.nw0; it.nh=it.nh0; }
     if(!(hasPlate && (text || fmt!=='ua')) && !(emb && logo)){ it.img=it.img0; if(it.box0) it.boxImg=it.box0; continue; }
     const pt=hasPlate?text:'', pf=hasPlate?fmt:'ua';
     const a=await drawPlate(it.img0, pr.card, pt, pr.cardS, pf, code, emb&&emb.card, logo);
@@ -1466,11 +1477,11 @@ async function applyPlate(){
   }
   { const it=byId('key'); if(it){ if(it.nw0==null){it.nw0=it.nw; it.nh0=it.nh;}
       const f=(state.logo!=null)?KEYBY[state.logo]:null;
-      if(state.noLogo){ const kb=await keyBlank(); if(job!==_plateJob) return; it.img=kb; it.boxImg=kb; it.nw=KEYIMG['r_Lada'][1]; it.nh=KEYIMG['r_Lada'][2]; it.ax='v'; }
+      if(state.noLogo){ it.img=NL.key[0]; it.boxImg=NL.key[1]; it.nw=NL.key[2]; it.nh=NL.key[3]; it.ax='v'; }
       else if(f&&KEYIMG[f]){ it.img=KEYIMG[f][0]; it.boxImg=KEYIMG[f][0]; it.nw=KEYIMG[f][1]; it.nh=KEYIMG[f][2]; it.ax='v'; }
       else { it.img=it.img0; if(it.box0) it.boxImg=it.box0; it.nw=it.nw0; it.nh=it.nh0; } } }
   { const it=byId('plugs'); if(it){ const lname=(state.logo!=null)?LOGOS[state.logo][0]:null;
-      if(state.noLogo){ it.img=PLUG_CARD['_none']; it.photoCard=true; it.boxImg=PLUG_BLANK; }
+      if(state.noLogo){ it.img=NL.plugs[0]; it.photoCard=false; it.boxImg=PLUG_BLANK; }
       else if(lname==null){ it.img=it.img0; it.boxImg=it.box0; it.photoCard=false; }
       else { const has=!!PLUG_CARD[lname]; it.img=has?PLUG_CARD[lname]:PLUG_CARD['_none']; it.photoCard=true;
         if(has){ const s2=PLUG_LOGO[lname]? await plugBoxVec(PLUG_LOGO[lname]) : PLUG_SHAPE[lname]? await plugBoxShape(PLUG_SHAPE[lname]) : PLUG_REAL[lname]? await plugBoxReal(PLUG_REAL[lname]) : await drawPlate(PLUG_BLANK,null,'',null,'ua','',PLUG_EMB,LOGOS[state.logo][1]); if(job!==_plateJob) return; it.boxImg=s2; }
