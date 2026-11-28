@@ -357,7 +357,6 @@ html.client #fillStat, html.client #discRow, html.client #savedBox{display:none!
 #dmCopy.done{border-color:#2fb36b;color:#5fd393}
 .dmSteps{margin:6px 0 10px 18px;padding:0;font-size:14px;line-height:1.5;color:#e8e6e3}
 .dmLead{margin:4px 0 8px;font-size:14px;line-height:1.5;color:#c9c7d1}
-.dmHint{margin:10px 0 0;font-size:12.5px;line-height:1.45;color:#a9a7b3;text-align:center}
 #dmText{font-family:inherit;width:100%;height:150px;min-height:120px;background:#0f0f12;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;color:#cfcfd6;resize:none}
 .dmbox .mrow .btn{flex:1;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center}
 .miniStage{display:none}
@@ -522,7 +521,6 @@ fbq('init','1848941499786040');fbq('track','PageView');
     <p class="dmLead">Перевір, чи все правильно:</p>
     <textarea id="dmText" readonly></textarea>
     <div class="mrow"><button class="btn sec" id="dmCopy">📋 Скопіювати</button><a class="btn dm" id="dmOpen" href="https://ig.me/m/autopodushky" target="_blank" rel="noopener">💬 Відкрити Direct</a></div>
-    <p class="dmHint">У Direct натисни й утримуй поле повідомлення → «Вставити» і надішли — ми підтвердимо замовлення.</p>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -1205,9 +1203,9 @@ function setSummary(i){
   return withSet(i,()=>{ const c=setCalc(); const L=[];
     state.items.forEach(id=>{ const it=byId(id); const nm= id==='perfume' ? 'Автопарфум '+(PERFUMES.find(x=>x.id===state.perfume)||PERFUMES[0]).name : it.name;
       L.push(`• ${nm}${it.price!=null?' — '+fmt(it.price)+' грн':''}`); });
-    if(c.box.max&&state.items.length) L.push(state.noBox ? '• Без подарункової коробки' : `• Подарункова коробка ${c.box.w}×${c.box.d}×${c.box.h} см — ${c.boxPrice?fmt(c.boxPrice)+' грн':'у подарунок'}`);
-    if(state.items.some(id=>LOGO_ITEMS.includes(id))) L.push(`• Марка авто: ${state.noLogo?'без логотипу':state.logo==null?'не обрано':LOGOS[state.logo][0]}`);
-    if(state.plateText && state.items.some(id=>PLATE_REG[id])) L.push(`• Номерний знак: ${state.plateText}`);
+    if(c.box.max&&state.items.length) L.push(state.noBox ? '📦 Без подарункової коробки' : `📦 Подарункова коробка ${c.box.w}×${c.box.d}×${c.box.h} см — ${c.boxPrice?fmt(c.boxPrice)+' грн':'у подарунок'}`);
+    if(state.items.some(id=>LOGO_ITEMS.includes(id))) L.push(`🚘 Марка авто: ${state.noLogo?'без логотипу':state.logo==null?'не обрано':LOGOS[state.logo][0]}`);
+    if(state.plateText && state.items.some(id=>PLATE_REG[id])) L.push(`🔢 Номерний знак: ${state.plateText}`);
     return {L,c}; });
 }
 function summaryText(){
