@@ -203,6 +203,7 @@ textarea.copybox{width:100%;min-height:120px;margin-top:8px;background:#0f0f12;b
 .it:hover img{transform:none}
 .flatlay .flatit{position:relative;width:140px;height:140px}
 .flatlay .flatit img{width:100%;height:100%;object-fit:contain}
+.flatlay.nobox{padding:14px 6px;gap:14px}.flatlay.nobox .flatit{width:150px;height:150px;border-radius:12px;overflow:hidden}
 .ruler{position:absolute;left:0;right:0;bottom:-26px;text-align:center;font-size:11px;color:#c9b9a8;font-weight:700;letter-spacing:.03em}
 .stagewrap{padding:22px 22px 40px}
 .box{overflow:visible}
@@ -851,6 +852,7 @@ function why(box, ids){ // пояснення, чому не влазить
 
 /* ================= МАГАЗИН ================= */
 function wouldFit(id){
+  if(state.noBox) return true;
   const ids=[...state.items,id];
   const box=curBox();
   return !!smallestFit(ids,25);
@@ -915,7 +917,7 @@ function renderBoxes(){
       <label class="bprice">ціна коробки <input type="number" min="0" value="${b.price}"> грн</label>`;
     { const g=document.createElement('label'); g.className='tgl boxTgl'; g.title=nb?'Додати подарункову коробку':'Прибрати подарункову коробку';
       g.innerHTML=`<input type="checkbox" ${nb?'':'checked'}><span></span>`;
-      g.querySelector('input').onchange=e=>{ state.noBox=!e.target.checked; render(); toast(state.noBox?'Без подарункової коробки':'З подарунковою коробкою'); };
+      g.querySelector('input').onchange=e=>{ if(e.target.checked && state.items.length){ const f=smallestFit(state.items); if(!f){ e.target.checked=false; toast('Набір не поміщається в жодну коробку — прибери кілька товарів або залиш без коробки'); return; } state.box=f; } state.noBox=!e.target.checked; render(); toast(state.noBox?'Без подарункової коробки':'З подарунковою коробкою'); };
       d.appendChild(g); }
     const inp=d.querySelector('.bprice input');
     inp.oninput=()=>{b.price=Math.max(0,+inp.value||0);saveCatalog();renderStats();renderSaved();};
@@ -943,8 +945,8 @@ function renderStage(){
   const box=curBox();
   const st=$('#stage'); st.innerHTML='';
   const ov=$('#overflow'); ov.style.display='none';
-  if(!box.max){
-    const f=document.createElement('div'); f.className='flatlay';
+  if(!box.max || state.noBox){
+    const f=document.createElement('div'); f.className='flatlay'+(state.noBox?' nobox':'');
     if(!state.items.length) f.innerHTML='<div class="empty-msg">Додай товари з магазину</div>';
     state.items.forEach(id=>{const it=byId(id); const d=document.createElement('div'); d.className='it flatit';
       d.innerHTML=`<img src="${it.img}" alt=""><span class="tag">${esc(it.name)} · <i>${it.price==null?'—':fmt(it.price)+' грн'}</i></span><span class="x">✕</span>`;
@@ -1062,6 +1064,7 @@ function toggleItem(id){
   if(!has(id) && state.noLogo && LOGO_ONLY.includes(id)){ toast(byId(id).name+' буває лише з логотипом авто. Оберіть марку авто, щоб додати.'); try{ const h=$('#logoHome'); h.classList.add('open'); updMoreLogos(); h.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} return; }
   if(has(id)){ state.items=state.items.filter(x=>x!==id); try{ if(!needPerf()) delete _asked.perf; if(!needPlate()) delete _asked.plate; if(!needLogo()) delete _asked.logo; }catch(e){} applyAuto(); render(); return; }
   const ids=[...state.items,id], it=byId(id);
+  if(state.noBox){ const f0=smallestFit(ids); if(f0) state.box=f0; state.items=ids; render(); askPers(id); return; }
   const f=smallestFit(ids);
   if(!f){
     const one=smallestFit([id]);
@@ -1566,7 +1569,15 @@ async function setImage(){
   g.fillStyle='#b9b2a6'; g.font='500 28px Manrope, sans-serif'; g.fillText(k.multi?`Мій подарунковий набір ${state.cur+1}`:'Мій подарунковий набір',60,140);
   // коробка
   const area={x:60,y:180,w:W-120,h:620};
-  if(box.max && state.items.length){
+  if(state.noBox && state.items.length){
+    const n=state.items.length, cols=Math.min(4,Math.ceil(Math.sqrt(n))), rows=Math.ceil(n/cols), cell=Math.min(area.w/cols, area.h/rows);
+    const ox=area.x+(area.w-cell*cols)/2, oy=area.y+(area.h-cell*rows)/2;
+    for(let i=0;i<n;i++){ const it=byId(state.items[i]), img=await loadImg(it.img); if(!img) continue;
+      const r=Math.floor(i/cols), c=i%cols, inRow=Math.min(cols, n-r*cols), rx=ox+(cell*cols-cell*inRow)/2;
+      const pad=cell*0.06, mw=cell-2*pad, sc=Math.min(mw/img.width, mw/img.height), w=img.width*sc, h=img.height*sc;
+      g.save(); g.shadowColor='rgba(0,0,0,.55)'; g.shadowBlur=18; g.shadowOffsetY=8; g.drawImage(img, rx+c*cell+(cell-w)/2, oy+r*cell+(cell-h)/2, w, h); g.restore(); }
+    g.fillStyle='#c9b9a8'; g.font='600 24px Manrope, sans-serif'; g.textAlign='center'; g.fillText('Без подарункової коробки',W/2,area.y+area.h+30);
+  } else if(box.max && state.items.length){
     const res=pack(box,state.items); const mx=Math.max(0,...res.placed.map(q=>q.x+q.fw)), my=Math.max(0,...res.placed.map(q=>q.y+q.fd));
     const kx=Math.min(1,box.w/Math.max(mx,.01)), ky=Math.min(1,box.d/Math.max(my,.01));
     const pad=26, sc=Math.min((area.w-2*pad)/box.w,(area.h-2*pad)/box.d), bw=box.w*sc, bd=box.d*sc;
